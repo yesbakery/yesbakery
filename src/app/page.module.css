@@ -1,0 +1,975 @@
+.page {
+  min-height: 100vh;
+  padding: 20px;
+  background:
+    radial-gradient(circle at top left, rgba(240, 204, 186, 0.7), transparent 28%),
+    radial-gradient(circle at right 18%, rgba(228, 189, 152, 0.45), transparent 22%),
+    linear-gradient(180deg, #fbf3ef 0%, #f7eadf 50%, #fff8f2 100%);
+}
+
+.shell {
+  width: min(1220px, 100%);
+  margin: 0 auto;
+}
+
+.navbar,
+.heroCopy,
+.heroFeature,
+.card,
+.checkoutSummary,
+.checkoutCard,
+.storyCard {
+  border: 1px solid rgba(107, 68, 45, 0.12);
+  box-shadow: 0 20px 60px rgba(113, 77, 54, 0.1);
+}
+
+.navbar {
+  position: sticky;
+  top: 12px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 24px;
+  padding: 14px 18px;
+  border-radius: 24px;
+  backdrop-filter: blur(18px);
+  background: rgba(255, 248, 242, 0.84);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+}
+
+.brandLogo {
+  width: 168px;
+  height: auto;
+}
+
+.navLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.navActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.menuToggle {
+  display: none;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.76);
+  cursor: pointer;
+}
+
+.menuToggle span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: #6a4532;
+}
+
+.navLinks a,
+.secondaryCta,
+.cartBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: 999px;
+  color: #6a4532;
+  background: rgba(255, 255, 255, 0.68);
+  transition: transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+}
+
+.cartBadge {
+  gap: 10px;
+  font-weight: 700;
+}
+
+.mobileCartBadge {
+  display: none;
+}
+
+.cartBadge span {
+  min-width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: #fff8f4;
+  background: linear-gradient(135deg, #c47a45, #a6542d);
+}
+
+.hero,
+.section,
+.checkoutSection,
+.storySection {
+  margin-bottom: 28px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.98fr) minmax(320px, 1.02fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.heroCopy,
+.heroFeature,
+.checkoutSummary,
+.checkoutCard,
+.storyCard {
+  border-radius: 34px;
+}
+
+.heroCopy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 22px;
+  padding: 52px;
+  background:
+    linear-gradient(180deg, rgba(255, 250, 246, 0.96), rgba(253, 236, 226, 0.92)),
+    linear-gradient(120deg, rgba(214, 162, 122, 0.12), transparent);
+}
+
+.kicker {
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: #ad6b48;
+}
+
+.heroCopy h1,
+.sectionHeader h2,
+.checkoutSummary h2,
+.checkoutCard h2,
+.storyText h2,
+.cardHeading h3 {
+  font-family: var(--font-display);
+  color: #5f311c;
+}
+
+.heroCopy h1 {
+  max-width: 11ch;
+  font-size: clamp(3.1rem, 6vw, 5.6rem);
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+}
+
+.lede,
+.sectionHeader p,
+.checkoutSummary p,
+.checkoutIntro,
+.storyText p,
+.cardBody p,
+.emptyCart p,
+.cartItem p,
+.paymentNote,
+.successMessage p {
+  color: #6f5143;
+  line-height: 1.7;
+}
+
+.lede {
+  max-width: 58ch;
+  font-size: 1.05rem;
+}
+
+.heroActions,
+.cardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.primaryCta,
+.secondaryCta,
+.addButton,
+.submitButton {
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.primaryCta,
+.addButton,
+.submitButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 13px 22px;
+  border: 0;
+  border-radius: 999px;
+  color: #fff8f4;
+  background: linear-gradient(135deg, #c47a45, #a6542d);
+  box-shadow: 0 16px 34px rgba(164, 84, 45, 0.22);
+  transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+  cursor: pointer;
+}
+
+.submitButton {
+  width: 100%;
+}
+
+.submitButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.heroFeature {
+  position: relative;
+  overflow: hidden;
+  min-height: 620px;
+  padding: 20px;
+  background:
+    radial-gradient(circle at top, rgba(255, 245, 239, 0.95), transparent 30%),
+    linear-gradient(180deg, #f7ddd1 0%, #f0ccb8 100%);
+  animation: floatIn 720ms ease-out both;
+}
+
+.heroImageWrap {
+  position: relative;
+  height: 100%;
+  min-height: 580px;
+  overflow: hidden;
+  border-radius: 28px;
+}
+
+.heroImageWrap :global(img),
+.imageWrap :global(img) {
+  object-fit: cover;
+}
+
+.heroNote {
+  position: absolute;
+  right: 34px;
+  bottom: 34px;
+  display: grid;
+  gap: 4px;
+  padding: 18px 20px;
+  border-radius: 22px;
+  background: rgba(76, 38, 22, 0.84);
+  color: #fff6ef;
+  box-shadow: 0 16px 34px rgba(76, 38, 22, 0.2);
+}
+
+.heroNote span {
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #f0c7ae;
+}
+
+.heroNote strong {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.heroNote em {
+  font-style: normal;
+  color: #ffdcbc;
+}
+
+.sectionHeader {
+  max-width: 700px;
+  margin-bottom: 22px;
+  padding: 12px 4px;
+}
+
+.sectionHeader h2,
+.checkoutSummary h2,
+.checkoutCard h2,
+.storyText h2 {
+  margin: 10px 0 12px;
+  font-size: clamp(2.2rem, 4vw, 3.8rem);
+  line-height: 0.98;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.card {
+  overflow: hidden;
+  border-radius: 30px;
+  background: rgba(255, 250, 247, 0.96);
+  animation: riseFade 700ms ease both;
+}
+
+.imageWrap {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  background: #efd2c0;
+}
+
+.cardBody {
+  padding: 24px 24px 28px;
+}
+
+.cardHeading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.cardHeading h3 {
+  font-size: 2rem;
+}
+
+.price,
+.lineTotal {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: #7a4125;
+  background: #f8dfcf;
+  font-weight: 800;
+}
+
+.cardActions {
+  margin-top: 18px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sourdoughCallout {
+  display: grid;
+  gap: 4px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: rgba(244, 229, 219, 0.75);
+  border: 1px solid rgba(122, 65, 37, 0.09);
+}
+
+.sourdoughCallout strong,
+.menuCount {
+  color: #64351e;
+}
+
+.sourdoughCallout span {
+  color: #7b5a49;
+  line-height: 1.5;
+}
+
+.menuCount {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #f5ddd0;
+  font-weight: 700;
+}
+
+.inlineQty {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  border-radius: 999px;
+  background: rgba(255, 243, 236, 0.9);
+  border: 1px solid rgba(122, 65, 37, 0.12);
+}
+
+.inlineQty span {
+  min-width: 22px;
+  text-align: center;
+  font-weight: 700;
+  color: #5f311c;
+}
+
+.qtyButton,
+.removeButton {
+  border: 0;
+  cursor: pointer;
+}
+
+.qtyButton {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  color: #fff8f4;
+  background: linear-gradient(135deg, #c47a45, #a6542d);
+}
+
+.removeButton {
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: #7a4125;
+  background: #f5ddd0;
+  font-weight: 700;
+}
+
+.checkoutPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(340px, 0.9fr);
+  gap: 22px;
+}
+
+.checkoutSummary,
+.checkoutCard {
+  padding: 32px;
+  background:
+    linear-gradient(180deg, rgba(255, 250, 246, 0.96), rgba(253, 236, 226, 0.92)),
+    linear-gradient(120deg, rgba(214, 162, 122, 0.12), transparent);
+}
+
+.cartList {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.emptyCart,
+.cartItem,
+.successMessage {
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(107, 68, 45, 0.09);
+}
+
+.emptyCart strong,
+.cartItem strong,
+.successMessage strong {
+  color: #64351e;
+}
+
+.cartItemInfo {
+  display: grid;
+  gap: 6px;
+}
+
+.cartItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.inclusionList {
+  display: grid;
+  gap: 4px;
+  padding-left: 18px;
+  color: #7b5a49;
+}
+
+.cartControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.totals {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(107, 68, 45, 0.12);
+}
+
+.totals div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #6f5143;
+}
+
+.totals strong {
+  color: #5f311c;
+}
+
+.checkoutIntro {
+  margin-bottom: 20px;
+}
+
+.checkoutForm {
+  display: grid;
+  gap: 14px;
+}
+
+.checkoutForm label {
+  display: grid;
+  gap: 8px;
+  color: #64351e;
+  font-weight: 700;
+}
+
+.checkoutForm input,
+.checkoutForm textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(107, 68, 45, 0.16);
+  background: rgba(255, 255, 255, 0.86);
+  color: #4f2c1a;
+  font: inherit;
+}
+
+.paymentNote {
+  margin-top: 16px;
+}
+
+.successMessage {
+  margin-top: 18px;
+  background: rgba(248, 239, 228, 0.96);
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(59, 33, 21, 0.45);
+  backdrop-filter: blur(10px);
+}
+
+.modalCard {
+  width: min(1080px, 100%);
+  max-height: min(92vh, 900px);
+  overflow: auto;
+  padding: 28px;
+  border-radius: 32px;
+  border: 1px solid rgba(107, 68, 45, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 250, 246, 0.98), rgba(253, 236, 226, 0.96)),
+    linear-gradient(120deg, rgba(214, 162, 122, 0.12), transparent);
+  box-shadow: 0 28px 80px rgba(59, 33, 21, 0.22);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.modalHeader h2 {
+  margin: 8px 0 10px;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  line-height: 0.98;
+  color: #5f311c;
+}
+
+.modalIntro,
+.modalSummary p {
+  color: #6f5143;
+  line-height: 1.7;
+}
+
+.modalClose {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 999px;
+  color: #fff8f4;
+  background: linear-gradient(135deg, #c47a45, #a6542d);
+  cursor: pointer;
+}
+
+.inclusionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.inclusionCard {
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid rgba(107, 68, 45, 0.12);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.72);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.inclusionCardSelected {
+  border-color: rgba(166, 84, 45, 0.52);
+  box-shadow: 0 16px 32px rgba(166, 84, 45, 0.16);
+}
+
+.inclusionImageWrap {
+  position: relative;
+  aspect-ratio: 1.3 / 1;
+  padding: 12px;
+  background:
+    radial-gradient(circle at top, rgba(255, 250, 246, 0.96), transparent 55%),
+    #efd2c0;
+}
+
+.inclusionImageWrap :global(img) {
+  object-fit: contain;
+  object-position: center;
+}
+
+.inclusionContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 18px;
+}
+
+.inclusionContent strong {
+  color: #64351e;
+  font-size: 1rem;
+}
+
+.inclusionContent span,
+.modalSummary span {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: #7a4125;
+  background: #f8dfcf;
+  font-weight: 800;
+}
+
+.modalFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(107, 68, 45, 0.12);
+}
+
+.modalSummary {
+  display: grid;
+  gap: 8px;
+}
+
+.modalSummary strong {
+  color: #64351e;
+}
+
+.storyCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.72fr);
+  gap: 22px;
+  padding: 32px;
+  background:
+    linear-gradient(180deg, rgba(255, 251, 247, 0.96), rgba(252, 239, 229, 0.94)),
+    linear-gradient(110deg, rgba(190, 120, 79, 0.08), transparent);
+}
+
+.storyText {
+  max-width: 62ch;
+}
+
+.storyLogoPanel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top, rgba(196, 122, 69, 0.18), transparent 30%),
+    linear-gradient(180deg, #fff8f2 0%, #f7e4d7 100%);
+}
+
+.storyLogo {
+  width: 100%;
+  height: auto;
+}
+
+@keyframes riseFade {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes floatIn {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .primaryCta:hover,
+  .secondaryCta:hover,
+  .navLinks a:hover,
+  .cartBadge:hover,
+  .addButton:hover,
+  .submitButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(134, 85, 57, 0.12);
+  }
+
+  .navLinks a:hover,
+  .secondaryCta:hover,
+  .cartBadge:hover {
+    background: rgba(255, 255, 255, 0.94);
+  }
+
+  .card {
+    transition: transform 180ms ease, box-shadow 180ms ease;
+  }
+
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 26px 56px rgba(113, 77, 54, 0.16);
+  }
+
+  .inclusionCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 22px 40px rgba(113, 77, 54, 0.14);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .heroFeature,
+  .primaryCta,
+  .secondaryCta,
+  .navLinks a,
+  .cartBadge,
+  .addButton,
+  .submitButton {
+    animation: none;
+    transition: none;
+  }
+}
+
+@media (max-width: 980px) {
+  .hero,
+  .checkoutPanel,
+  .storyCard {
+    grid-template-columns: 1fr;
+  }
+
+  .heroCopy {
+    padding: 40px 34px;
+  }
+
+  .heroCopy h1 {
+    max-width: none;
+  }
+
+  .heroFeature,
+  .heroImageWrap {
+    min-height: 420px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .inclusionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .cartItem {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cartControls {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 12px;
+  }
+
+  .navbar {
+    position: relative;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .brand {
+    flex: 1 1 auto;
+  }
+
+  .navActions {
+    width: auto;
+    margin-left: 0;
+  }
+
+  .menuToggle {
+    display: inline-flex;
+  }
+
+  .brandLogo {
+    width: 148px;
+  }
+
+  .navLinks {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 12px;
+    right: 12px;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    margin-left: 0;
+    padding: 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(107, 68, 45, 0.12);
+    background: rgba(255, 248, 242, 0.98);
+    box-shadow: 0 20px 40px rgba(113, 77, 54, 0.14);
+  }
+
+  .navLinksOpen {
+    display: flex;
+  }
+
+  .navLinks a,
+  .mobileCartBadge {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .cartBadge {
+    display: none;
+  }
+
+  .mobileCartBadge {
+    display: inline-flex;
+    gap: 10px;
+    font-weight: 700;
+  }
+
+  .mobileCartBadge span {
+    min-width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    color: #fff8f4;
+    background: linear-gradient(135deg, #c47a45, #a6542d);
+  }
+
+  .heroCopy,
+  .heroFeature,
+  .checkoutSummary,
+  .checkoutCard,
+  .storyCard,
+  .modalCard {
+    border-radius: 24px;
+  }
+
+  .heroCopy,
+  .checkoutSummary,
+  .checkoutCard,
+  .storyCard {
+    padding: 24px 18px;
+  }
+
+  .heroFeature {
+    padding: 14px;
+  }
+
+  .heroImageWrap {
+    min-height: 320px;
+    border-radius: 20px;
+  }
+
+  .heroNote {
+    right: 20px;
+    bottom: 20px;
+    padding: 14px 16px;
+  }
+
+  .heroNote strong {
+    font-size: 1.5rem;
+  }
+
+  .card {
+    border-radius: 22px;
+  }
+
+  .cardBody {
+    padding: 18px 18px 22px;
+  }
+
+  .cardHeading {
+    flex-direction: column;
+  }
+
+  .cardHeading h3 {
+    font-size: 1.75rem;
+  }
+
+  .cardActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .addButton {
+    width: 100%;
+  }
+
+  .cartControls {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .modalOverlay {
+    padding: 12px;
+  }
+
+  .modalCard {
+    padding: 20px 16px;
+  }
+
+  .modalHeader,
+  .modalFooter,
+  .inclusionContent {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .modalFooter .submitButton {
+    width: 100%;
+  }
+}
