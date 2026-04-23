@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 
 type SessionDetails = {
   sessionId: string;
@@ -48,7 +48,7 @@ function formatPickupDate(value: string) {
       }).format(date);
 }
 
-export default function CheckoutSuccessPage() {
+function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = useMemo(() => searchParams.get("session_id") || "", [searchParams]);
   const [sessionDetails, setSessionDetails] = useState<SessionDetails | null>(null);
@@ -259,5 +259,40 @@ export default function CheckoutSuccessPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+export default function CheckoutSuccessPage() {
+  return (
+    <Suspense
+      fallback={
+        <main
+          style={{
+            minHeight: "100vh",
+            display: "grid",
+            placeItems: "center",
+            padding: "24px",
+            background:
+              "radial-gradient(circle at top left, rgba(240, 204, 186, 0.7), transparent 28%), linear-gradient(180deg, #fbf3ef 0%, #f7eadf 50%, #fff8f2 100%)",
+          }}
+        >
+          <section
+            style={{
+              width: "min(820px, 100%)",
+              padding: "36px",
+              borderRadius: "28px",
+              border: "1px solid rgba(107, 68, 45, 0.12)",
+              background: "rgba(255, 250, 247, 0.96)",
+              boxShadow: "0 20px 60px rgba(113, 77, 54, 0.1)",
+              color: "#6f5143",
+            }}
+          >
+            Loading Stripe payment details...
+          </section>
+        </main>
+      }
+    >
+      <CheckoutSuccessContent />
+    </Suspense>
   );
 }
