@@ -6,6 +6,7 @@ import {
   getStripeServerClient,
   getStripeSourdoughInclusionPriceId,
 } from "../../../lib/stripe-config";
+import { findApprovedShippingRequestByCode } from "../../../lib/shipping-requests";
 
 type CheckoutPayload = {
   cart?: Array<{
@@ -20,6 +21,7 @@ type CheckoutPayload = {
     pickupDate?: string;
     fulfillmentMethod?: string;
     shippingRequest?: string;
+    shippingApprovalCode?: string;
     notes?: string;
   };
 };
@@ -36,17 +38,23 @@ function shorten(value: string, maxLength: number) {
   return value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
 }
 
-function hasValidShippingApprovalCode(value: string) {
-  const configuredCodes = (process.env.SHIPPING_APPROVAL_CODES || "")
-    .split(",")
-    .map((code) => code.trim())
-    .filter(Boolean);
-
-  if (configuredCodes.length === 0) {
-    return false;
-  }
-
-  return configuredCodes.includes(value.trim());
+function normalizeCartShape(
+  cart: Array<{
+    id?: string;
+    quantity?: number;
+    selectedInclusions?: Array<{ id?: string }>;
+  }>,
+) {
+  return cart
+    .map((item) => ({
+      id: requireString(item.id),
+      quantity: Number(item.quantity) || 0,
+      inclusions: (Array.isArray(item.selectedInclusions) ? item.selectedInclusions : [])
+        .map((inclusion) => requireString(inclusion.id))
+        .filter(Boolean)
+        .sort(),
+    }))
+    .sort((left, right) => left.id.localeCompare(right.id));
 }
 
 export async function POST(request: NextRequest) {
@@ -82,8 +90,38 @@ export async function POST(request: NextRequest) {
     return badRequest("Your cart is empty.");
   }
 
-  if (fulfillmentMethod === "shipping" && !hasValidShippingApprovalCode(shippingApprovalCode)) {
+  const approvedShippingRequest =
+    fulfillmentMethod === "shipping" && shippingApprovalCode
+      ? await findApprovedShippingRequestByCode(shippingApprovalCode)
+      : null;
+
+  if (fulfillmentMethod === "shipping" && !approvedShippingRequest) {
     return badRequest("A valid shipping approval code is required before shipping orders can continue to payment.");
+  }
+
+  if (
+    approvedShippingRequest &&
+    (approvedShippingRequest.email !== email ||
+      JSON.stringify(
+        normalizeCartShape(
+          cart.map((item) => ({
+            id: item.id,
+            quantity: item.quantity,
+            selectedInclusions: item.selectedInclusions,
+          })),
+        ),
+      ) !==
+        JSON.stringify(
+          normalizeCartShape(
+            approvedShippingRequest.cart.map((item) => ({
+              id: item.id,
+              quantity: item.quantity,
+              selectedInclusions: item.selectedInclusions,
+            })),
+          ),
+        ))
+  ) {
+    return badRequest("This shipping approval code only works for the approved customer and approved item list.");
   }
 
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];

@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Resend } from "resend";
+import { createShippingRequest } from "../../../lib/shipping-requests";
 
 type ShippingRequestPayload = {
   cart?: Array<{
+    id?: string;
     name?: string;
     quantity?: number;
-    selectedInclusions?: Array<{ name?: string }>;
+    unitPrice?: number;
+    selectedInclusions?: Array<{ id?: string; name?: string }>;
   }>;
   checkoutForm?: {
     fullName?: string;
@@ -26,13 +28,6 @@ function badRequest(message: string, status = 400) {
 }
 
 export async function POST(request: NextRequest) {
-  const resendApiKey = process.env.RESEND_API_KEY?.trim() || "";
-  const resendFromEmail = process.env.RESEND_FROM_EMAIL?.trim() || "onboarding@resend.dev";
-
-  if (!resendApiKey || resendApiKey === "re_xxxxxxxxx") {
-    return badRequest("Replace re_xxxxxxxxx with your real Resend API key in the server environment.", 500);
-  }
-
   let payload: ShippingRequestPayload;
 
   try {
@@ -41,7 +36,7 @@ export async function POST(request: NextRequest) {
     return badRequest("Invalid shipping request.");
   }
 
-  const cart = Array.isArray(payload.cart) ? payload.cart : [];
+  const rawCart = Array.isArray(payload.cart) ? payload.cart : [];
   const fullName = clean(payload.checkoutForm?.fullName);
   const email = clean(payload.checkoutForm?.email);
   const phone = clean(payload.checkoutForm?.phone);
@@ -49,47 +44,44 @@ export async function POST(request: NextRequest) {
   const shippingRequest = clean(payload.checkoutForm?.shippingRequest);
   const notes = clean(payload.checkoutForm?.notes);
 
-  if (!fullName || !email || !pickupDate || !shippingRequest || cart.length === 0) {
+  if (!fullName || !email || !pickupDate || !shippingRequest || rawCart.length === 0) {
     return badRequest("Please complete the shipping request details before sending.");
   }
 
+  const cart = rawCart.map((item) => ({
+    id: clean(item.id),
+    name: clean(item.name) || "Item",
+    quantity: Number(item.quantity) || 0,
+    unitPrice: Number(item.unitPrice) || 0,
+    selectedInclusions: Array.isArray(item.selectedInclusions)
+      ? item.selectedInclusions.map((inclusion) => ({
+          id: clean(inclusion.id),
+          name: clean(inclusion.name),
+        }))
+      : [],
+  }));
+
   const orderSummary = cart
     .map((item) => {
-      const itemName = clean(item.name) || "Item";
-      const quantity = Number(item.quantity) || 0;
-      const inclusions = Array.isArray(item.selectedInclusions)
-        ? item.selectedInclusions.map((inclusion) => clean(inclusion.name)).filter(Boolean)
-        : [];
-      const inclusionSummary = inclusions.length > 0 ? ` (${inclusions.join(", ")})` : "";
+      const inclusions =
+        item.selectedInclusions.length > 0
+          ? ` (${item.selectedInclusions.map((inclusion) => inclusion.name).join(", ")})`
+          : "";
 
-      return `${quantity}x ${itemName}${inclusionSummary}`;
+      return `${item.quantity}x ${item.name}${inclusions}`;
     })
     .join(" | ");
 
-  const resend = new Resend(resendApiKey);
+  const savedRequest = await createShippingRequest({
+    fullName,
+    email,
+    phone,
+    pickupDate,
+    shippingRequest,
+    notes,
+    orderSummary,
+    cart,
+  });
 
-  try {
-    await resend.emails.send({
-      from: resendFromEmail,
-      to: "yesbakery@gmail.com",
-      subject: `Shipping arrangement request from ${fullName}`,
-      replyTo: email,
-      html: `
-        <h2>New Shipping Arrangement Request</h2>
-        <p><strong>Name:</strong> ${fullName}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Phone:</strong> ${phone || "Not provided"}</p>
-        <p><strong>Requested order date:</strong> ${pickupDate}</p>
-        <p><strong>Selected items:</strong> ${orderSummary}</p>
-        <p><strong>Shipping details:</strong></p>
-        <p>${shippingRequest.replace(/\n/g, "<br />")}</p>
-        ${notes ? `<p><strong>Order notes:</strong> ${notes.replace(/\n/g, "<br />")}</p>` : ""}
-        <p>If approved, send the customer a shipping approval code so they can return to checkout.</p>
-      `,
-    });
-
-    return NextResponse.json({ ok: true });
-  } catch {
-    return badRequest("We couldn't send your shipping request right now. Please try again.", 500);
-  }
+  return NextResponse.json({ ok: true, requestId: savedRequest.id });
 }

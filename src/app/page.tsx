@@ -177,6 +177,43 @@ export default function Home() {
     window.localStorage.setItem("yesbakery-checkout-form", JSON.stringify(checkoutForm));
   }, [checkoutForm]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const checkoutParam = params.get("checkout");
+    const shippingCode = params.get("shippingCode");
+
+    if (!checkoutParam) {
+      if (shippingCode) {
+        setCheckoutForm((current) => ({ ...current, shippingApprovalCode: shippingCode }));
+      }
+      return;
+    }
+
+    try {
+      const normalizedBase64 = checkoutParam.replace(/-/g, "+").replace(/_/g, "/");
+      const paddedBase64 = normalizedBase64.padEnd(Math.ceil(normalizedBase64.length / 4) * 4, "=");
+      const decoded = JSON.parse(atob(paddedBase64)) as {
+        cart?: Array<Partial<CartItem> & Product>;
+        checkoutForm?: Partial<CheckoutForm>;
+      };
+
+      if (Array.isArray(decoded.cart)) {
+        setCart(decoded.cart.map(normalizeCartItem));
+      }
+
+      if (decoded.checkoutForm) {
+        const restoredCheckoutForm = decoded.checkoutForm;
+        setCheckoutForm((current) => ({
+          ...current,
+          ...restoredCheckoutForm,
+          shippingApprovalCode: shippingCode || restoredCheckoutForm.shippingApprovalCode || "",
+        }));
+      }
+    } catch {
+      setCheckoutError("We couldn't restore your approved shipping cart from the email link.");
+    }
+  }, []);
+
   const itemCount = cart.reduce((total, item) => total + item.quantity, 0);
   const subtotal = cart.reduce((total, item) => total + item.unitPrice * item.quantity, 0);
   const sourdoughCount = cart
