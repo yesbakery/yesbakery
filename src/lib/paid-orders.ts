@@ -31,9 +31,10 @@ export async function recordPaidOrder(order: RecordedPaidOrder) {
   const existingOrders = await readPaidOrders();
 
   if (existingOrders.some((entry) => entry.sessionId === order.sessionId)) {
-    return;
+    return false;
   }
 
   await mkdir(dataDirectory, { recursive: true });
   await writeFile(paidOrdersFilePath, JSON.stringify([order, ...existingOrders], null, 2));
+  return true;
 }
