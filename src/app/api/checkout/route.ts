@@ -36,6 +36,19 @@ function shorten(value: string, maxLength: number) {
   return value.length > maxLength ? `${value.slice(0, maxLength - 1)}…` : value;
 }
 
+function hasValidShippingApprovalCode(value: string) {
+  const configuredCodes = (process.env.SHIPPING_APPROVAL_CODES || "")
+    .split(",")
+    .map((code) => code.trim())
+    .filter(Boolean);
+
+  if (configuredCodes.length === 0) {
+    return false;
+  }
+
+  return configuredCodes.includes(value.trim());
+}
+
 export async function POST(request: NextRequest) {
   const stripe = getStripeServerClient();
 
@@ -58,6 +71,7 @@ export async function POST(request: NextRequest) {
   const pickupDate = requireString(payload.checkoutForm?.pickupDate);
   const fulfillmentMethod = requireString(payload.checkoutForm?.fulfillmentMethod) || "pickup";
   const shippingRequest = requireString(payload.checkoutForm?.shippingRequest);
+  const shippingApprovalCode = requireString((payload.checkoutForm as { shippingApprovalCode?: string } | undefined)?.shippingApprovalCode);
   const notes = requireString(payload.checkoutForm?.notes);
 
   if (!fullName || !email || !phone || !pickupDate) {
@@ -66,6 +80,10 @@ export async function POST(request: NextRequest) {
 
   if (cart.length === 0) {
     return badRequest("Your cart is empty.");
+  }
+
+  if (fulfillmentMethod === "shipping" && !hasValidShippingApprovalCode(shippingApprovalCode)) {
+    return badRequest("A valid shipping approval code is required before shipping orders can continue to payment.");
   }
 
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
@@ -170,6 +188,7 @@ export async function POST(request: NextRequest) {
         pickup_date: shorten(pickupDate, 100),
         fulfillment_method: shorten(fulfillmentMethod, 100),
         shipping_request: shorten(shippingRequest || "None", 500),
+        shipping_approval_code: shorten(shippingApprovalCode || "None", 100),
         order_summary: shorten(orderSummary.join(" | "), 500),
         notes: shorten(notes || "None", 500),
       },

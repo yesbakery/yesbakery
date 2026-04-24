@@ -19,6 +19,7 @@ type CheckoutForm = {
   pickupDate: string;
   fulfillmentMethod: "pickup" | "shipping";
   shippingRequest: string;
+  shippingApprovalCode: string;
   notes: string;
 };
 
@@ -36,6 +37,7 @@ const initialForm: CheckoutForm = {
   pickupDate: "",
   fulfillmentMethod: "pickup",
   shippingRequest: "",
+  shippingApprovalCode: "",
   notes: "",
 };
 
@@ -139,6 +141,19 @@ function isPickupDateValid(value: string) {
   return value >= getEarliestPickupDate();
 }
 
+function formatCartSummary(cart: CartItem[]) {
+  return cart
+    .map((item) => {
+      const inclusionSummary =
+        item.selectedInclusions.length > 0
+          ? ` (${item.selectedInclusions.map((inclusion) => inclusion.name).join(", ")})`
+          : "";
+
+      return `${item.quantity}x ${item.name}${inclusionSummary}`;
+    })
+    .join(" | ");
+}
+
 export default function Home() {
   const [cart, setCart] = useState<CartItem[]>(readStoredCart);
   const [checkoutForm, setCheckoutForm] = useState<CheckoutForm>(readStoredForm);
@@ -148,6 +163,7 @@ export default function Home() {
   const [contactSuccessMessage, setContactSuccessMessage] = useState("");
   const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false);
   const [isSendingContactForm, setIsSendingContactForm] = useState(false);
+  const [isSendingShippingRequest, setIsSendingShippingRequest] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCheckoutReviewOpen, setIsCheckoutReviewOpen] = useState(false);
   const [sourdoughCustomizerOpen, setSourdoughCustomizerOpen] = useState(false);
@@ -288,7 +304,53 @@ export default function Home() {
       return;
     }
 
+    if (checkoutForm.fulfillmentMethod === "shipping" && !checkoutForm.shippingApprovalCode.trim()) {
+      void submitShippingRequest();
+      return;
+    }
+
     setIsCheckoutReviewOpen(true);
+  }
+
+  async function submitShippingRequest() {
+    if (cart.length === 0) {
+      return;
+    }
+
+    if (!checkoutForm.shippingRequest.trim()) {
+      setCheckoutError("Please tell us where the order would be shipped and any arrangement details.");
+      return;
+    }
+
+    setCheckoutError("");
+    setIsSendingShippingRequest(true);
+
+    try {
+      const response = await fetch("/api/shipping-request", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          cart,
+          checkoutForm,
+        }),
+      });
+
+      const payload = (await response.json()) as { ok?: boolean; error?: string };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || "We couldn't send your shipping request right now.");
+      }
+
+      setCheckoutError(
+        "Your shipping request has been sent to Yes Bakery. If shipping is approved, you will receive a code to continue to checkout.",
+      );
+    } catch (error) {
+      setCheckoutError(error instanceof Error ? error.message : "We couldn't send your shipping request right now.");
+    } finally {
+      setIsSendingShippingRequest(false);
+    }
   }
 
   async function continueToStripeCheckout() {
@@ -605,8 +667,9 @@ export default function Home() {
               <p className={styles.kicker}>Checkout</p>
               <h2>Complete the order details and pay with Stripe</h2>
               <p className={styles.checkoutIntro}>
-                Customers can review the cart, choose pickup or request shipping arrangements, and continue to
-                Stripe for secure payment.
+                Customers can choose pickup in Union City or request a shipping arrangement. Shipping requests
+                must be approved before payment, and approved customers will receive a code to continue to
+                checkout.
               </p>
 
               <form className={styles.checkoutForm} onSubmit={handleCheckoutSubmit}>
@@ -660,7 +723,7 @@ export default function Home() {
                 </label>
 
                 <label>
-                  Order Fulfillment
+                  Select Your Pick up Option
                   <select
                     value={checkoutForm.fulfillmentMethod}
                     onChange={(event) =>
@@ -670,20 +733,32 @@ export default function Home() {
                       }))
                     }
                   >
-                    <option value="pickup">Pickup in Union City, California</option>
-                    <option value="shipping">Request shipping arrangement</option>
+                    <option value="pickup">Pick up from Union City, California.</option>
+                    <option value="shipping">Request Shipping Arrangement (Requires Approval Prior to Payment)</option>
                   </select>
                 </label>
 
                 <label>
-                  Shipping Request
+                  Shipping Arrangement Request
                   <textarea
                     rows={3}
                     value={checkoutForm.shippingRequest}
                     onChange={(event) =>
                       setCheckoutForm((current) => ({ ...current, shippingRequest: event.target.value }))
                     }
-                    placeholder="If you would like shipping, tell us your city, state, and what you need shipped. Shipping may be available upon arrangement."
+                    placeholder="Tell us your city, state, shipping details, and what you need shipped. If approved, you will receive a code to continue to checkout."
+                  />
+                </label>
+
+                <label>
+                  I have a Shipping Approval Code
+                  <input
+                    type="text"
+                    value={checkoutForm.shippingApprovalCode}
+                    onChange={(event) =>
+                      setCheckoutForm((current) => ({ ...current, shippingApprovalCode: event.target.value }))
+                    }
+                    placeholder="Enter your approval code to continue to checkout"
                   />
                 </label>
 
@@ -702,20 +777,31 @@ export default function Home() {
                 <button
                   type="submit"
                   className={styles.submitButton}
-                  disabled={cart.length === 0 || isRedirectingToCheckout}
+                  disabled={cart.length === 0 || isRedirectingToCheckout || isSendingShippingRequest}
                 >
-                  {isRedirectingToCheckout ? "Redirecting to Stripe..." : "Review Before Stripe"}
+                  {isSendingShippingRequest
+                    ? "Sending Shipping Request..."
+                    : isRedirectingToCheckout
+                      ? "Redirecting to Stripe..."
+                      : checkoutForm.fulfillmentMethod === "shipping" && !checkoutForm.shippingApprovalCode.trim()
+                        ? "Request Shipping Approval"
+                        : "Review Before Stripe"}
                 </button>
               </form>
 
               <p className={styles.paymentNote}>
                 Orders must be placed at least 48 hours in advance. Pickup orders are prepared in Union City,
-                California, and shipping may be available upon arrangement.
+                California, and shipping may be available upon arrangement. Approved shipping requests receive a
+                code to continue to checkout.
               </p>
 
               {checkoutError ? (
                 <div className={styles.successMessage}>
-                  <strong>Stripe checkout could not start.</strong>
+                  <strong>
+                    {checkoutForm.fulfillmentMethod === "shipping" && !checkoutForm.shippingApprovalCode.trim()
+                      ? "Shipping request update."
+                      : "Stripe checkout could not start."}
+                  </strong>
                   <p>{checkoutError}</p>
                 </div>
               ) : null}
@@ -956,6 +1042,7 @@ export default function Home() {
                 <strong>Shipping request</strong>
                 <p>Shipping is not guaranteed for every order.</p>
                 <p>Shipping may be available upon arrangement depending on the item and destination.</p>
+                <p>Approved shipping requests will receive a code to continue to checkout.</p>
                 <p>
                   Current request:{" "}
                   {checkoutForm.fulfillmentMethod === "shipping"
@@ -971,7 +1058,9 @@ export default function Home() {
                 <span>{checkoutForm.pickupDate}</span>
                 <p>
                   {checkoutForm.fulfillmentMethod === "shipping"
-                    ? "Shipping request will be reviewed after payment."
+                    ? checkoutForm.shippingApprovalCode.trim()
+                      ? "Shipping approval code entered. If the code is valid, you can continue to payment."
+                      : "Shipping requests must be approved before payment. Approved customers receive a checkout code by email."
                     : "Pickup instructions will be sent by email after payment."}
                 </p>
               </div>
