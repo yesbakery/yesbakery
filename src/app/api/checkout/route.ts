@@ -18,6 +18,8 @@ type CheckoutPayload = {
     email?: string;
     phone?: string;
     pickupDate?: string;
+    fulfillmentMethod?: string;
+    shippingRequest?: string;
     notes?: string;
   };
 };
@@ -54,6 +56,8 @@ export async function POST(request: NextRequest) {
   const email = requireString(payload.checkoutForm?.email);
   const phone = requireString(payload.checkoutForm?.phone);
   const pickupDate = requireString(payload.checkoutForm?.pickupDate);
+  const fulfillmentMethod = requireString(payload.checkoutForm?.fulfillmentMethod) || "pickup";
+  const shippingRequest = requireString(payload.checkoutForm?.shippingRequest);
   const notes = requireString(payload.checkoutForm?.notes);
 
   if (!fullName || !email || !phone || !pickupDate) {
@@ -164,6 +168,8 @@ export async function POST(request: NextRequest) {
         customer_name: shorten(fullName, 100),
         phone: shorten(phone, 100),
         pickup_date: shorten(pickupDate, 100),
+        fulfillment_method: shorten(fulfillmentMethod, 100),
+        shipping_request: shorten(shippingRequest || "None", 500),
         order_summary: shorten(orderSummary.join(" | "), 500),
         notes: shorten(notes || "None", 500),
       },

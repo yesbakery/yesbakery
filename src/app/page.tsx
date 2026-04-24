@@ -17,7 +17,16 @@ type CheckoutForm = {
   email: string;
   phone: string;
   pickupDate: string;
+  fulfillmentMethod: "pickup" | "shipping";
+  shippingRequest: string;
   notes: string;
+};
+
+type ContactForm = {
+  fullName: string;
+  email: string;
+  phone: string;
+  message: string;
 };
 
 const initialForm: CheckoutForm = {
@@ -25,7 +34,16 @@ const initialForm: CheckoutForm = {
   email: "",
   phone: "",
   pickupDate: "",
+  fulfillmentMethod: "pickup",
+  shippingRequest: "",
   notes: "",
+};
+
+const initialContactForm: ContactForm = {
+  fullName: "",
+  email: "",
+  phone: "",
+  message: "",
 };
 
 const currency = new Intl.NumberFormat("en-US", {
@@ -105,12 +123,33 @@ function buildSourdoughCartItem(product: Product, selectedInclusions: Inclusion[
   };
 }
 
+function getEarliestPickupDate() {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() + 2);
+
+  return date.toISOString().split("T")[0];
+}
+
+function isPickupDateValid(value: string) {
+  if (!value) {
+    return false;
+  }
+
+  return value >= getEarliestPickupDate();
+}
+
 export default function Home() {
   const [cart, setCart] = useState<CartItem[]>(readStoredCart);
   const [checkoutForm, setCheckoutForm] = useState<CheckoutForm>(readStoredForm);
+  const [contactForm, setContactForm] = useState<ContactForm>(initialContactForm);
   const [checkoutError, setCheckoutError] = useState("");
+  const [contactError, setContactError] = useState("");
+  const [contactSuccessMessage, setContactSuccessMessage] = useState("");
   const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false);
+  const [isSendingContactForm, setIsSendingContactForm] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCheckoutReviewOpen, setIsCheckoutReviewOpen] = useState(false);
   const [sourdoughCustomizerOpen, setSourdoughCustomizerOpen] = useState(false);
   const [selectedInclusionIds, setSelectedInclusionIds] = useState<string[]>([]);
 
@@ -150,6 +189,10 @@ export default function Home() {
 
   function closeMobileMenu() {
     setIsMobileMenuOpen(false);
+  }
+
+  function closeCheckoutReview() {
+    setIsCheckoutReviewOpen(false);
   }
 
   function addToCart(product: Product) {
@@ -230,7 +273,7 @@ export default function Home() {
     setCart((currentCart) => currentCart.filter((item) => item.cartKey !== cartKey));
   }
 
-  async function handleCheckoutSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleCheckoutSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (cart.length === 0) {
@@ -238,6 +281,18 @@ export default function Home() {
     }
 
     setCheckoutError("");
+    setContactSuccessMessage("");
+
+    if (!isPickupDateValid(checkoutForm.pickupDate)) {
+      setCheckoutError("Orders must be placed at least 48 hours in advance.");
+      return;
+    }
+
+    setIsCheckoutReviewOpen(true);
+  }
+
+  async function continueToStripeCheckout() {
+    closeCheckoutReview();
     setIsRedirectingToCheckout(true);
 
     try {
@@ -262,6 +317,39 @@ export default function Home() {
     } catch (error) {
       setCheckoutError(error instanceof Error ? error.message : "We couldn't start Stripe checkout.");
       setIsRedirectingToCheckout(false);
+    }
+  }
+
+  async function handleContactSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    setContactError("");
+    setContactSuccessMessage("");
+    setIsSendingContactForm(true);
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(contactForm),
+      });
+
+      const payload = (await response.json()) as { ok?: boolean; error?: string };
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error || "We couldn't send your message right now.");
+      }
+
+      setContactSuccessMessage(
+        "Thank you. Your message was sent to our team and we will follow up about your order, shipping request, or special event details.",
+      );
+      setContactForm(initialContactForm);
+    } catch (error) {
+      setContactError(error instanceof Error ? error.message : "We couldn't send your message right now.");
+    } finally {
+      setIsSendingContactForm(false);
     }
   }
 
@@ -303,6 +391,9 @@ export default function Home() {
               </a>
               <a href="#checkout" onClick={closeMobileMenu}>
                 Checkout
+              </a>
+              <a href="#contact" onClick={closeMobileMenu}>
+                Contact
               </a>
               <a href="#story" onClick={closeMobileMenu}>
                 Our Story
@@ -514,7 +605,8 @@ export default function Home() {
               <p className={styles.kicker}>Checkout</p>
               <h2>Complete the order details and pay with Stripe</h2>
               <p className={styles.checkoutIntro}>
-                Customers can review the cart, add pickup details, and continue to Stripe for secure payment.
+                Customers can review the cart, choose pickup or request shipping arrangements, and continue to
+                Stripe for secure payment.
               </p>
 
               <form className={styles.checkoutForm} onSubmit={handleCheckoutSubmit}>
@@ -559,10 +651,39 @@ export default function Home() {
                   <input
                     type="date"
                     value={checkoutForm.pickupDate}
+                    min={getEarliestPickupDate()}
                     onChange={(event) =>
                       setCheckoutForm((current) => ({ ...current, pickupDate: event.target.value }))
                     }
                     required
+                  />
+                </label>
+
+                <label>
+                  Order Fulfillment
+                  <select
+                    value={checkoutForm.fulfillmentMethod}
+                    onChange={(event) =>
+                      setCheckoutForm((current) => ({
+                        ...current,
+                        fulfillmentMethod: event.target.value as CheckoutForm["fulfillmentMethod"],
+                      }))
+                    }
+                  >
+                    <option value="pickup">Pickup in Union City, California</option>
+                    <option value="shipping">Request shipping arrangement</option>
+                  </select>
+                </label>
+
+                <label>
+                  Shipping Request
+                  <textarea
+                    rows={3}
+                    value={checkoutForm.shippingRequest}
+                    onChange={(event) =>
+                      setCheckoutForm((current) => ({ ...current, shippingRequest: event.target.value }))
+                    }
+                    placeholder="If you would like shipping, tell us your city, state, and what you need shipped. Shipping may be available upon arrangement."
                   />
                 </label>
 
@@ -583,18 +704,108 @@ export default function Home() {
                   className={styles.submitButton}
                   disabled={cart.length === 0 || isRedirectingToCheckout}
                 >
-                  {isRedirectingToCheckout ? "Redirecting to Stripe..." : "Pay with Stripe"}
+                  {isRedirectingToCheckout ? "Redirecting to Stripe..." : "Review Before Stripe"}
                 </button>
               </form>
 
               <p className={styles.paymentNote}>
-                Payments are collected securely through Stripe after the customer confirms the order details.
+                Orders must be placed at least 48 hours in advance. Pickup orders are prepared in Union City,
+                California, and shipping may be available upon arrangement.
               </p>
 
               {checkoutError ? (
                 <div className={styles.successMessage}>
                   <strong>Stripe checkout could not start.</strong>
                   <p>{checkoutError}</p>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </section>
+
+        <section id="contact" className={styles.section}>
+          <div className={styles.storyCard}>
+            <div className={styles.storyText}>
+              <p className={styles.kicker}>Contact</p>
+              <h2>Planning a special order or hoping to arrange shipping?</h2>
+              <p>
+                Reach out for celebration orders, custom requests, larger bakery pickups, or shipping questions.
+                We will gladly review the details and let you know what can be arranged.
+              </p>
+              <p>
+                Pickup is based in Union City, California, and shipping can be discussed case by case depending
+                on the item and destination.
+              </p>
+            </div>
+
+            <div className={styles.checkoutCard}>
+              <p className={styles.kicker}>Send a Message</p>
+              <h2>Let us know what you need</h2>
+              <form className={styles.checkoutForm} onSubmit={handleContactSubmit}>
+                <label>
+                  Full Name
+                  <input
+                    type="text"
+                    value={contactForm.fullName}
+                    onChange={(event) =>
+                      setContactForm((current) => ({ ...current, fullName: event.target.value }))
+                    }
+                    required
+                  />
+                </label>
+
+                <label>
+                  Email
+                  <input
+                    type="email"
+                    value={contactForm.email}
+                    onChange={(event) =>
+                      setContactForm((current) => ({ ...current, email: event.target.value }))
+                    }
+                    required
+                  />
+                </label>
+
+                <label>
+                  Phone
+                  <input
+                    type="tel"
+                    value={contactForm.phone}
+                    onChange={(event) =>
+                      setContactForm((current) => ({ ...current, phone: event.target.value }))
+                    }
+                  />
+                </label>
+
+                <label>
+                  Message
+                  <textarea
+                    rows={5}
+                    value={contactForm.message}
+                    onChange={(event) =>
+                      setContactForm((current) => ({ ...current, message: event.target.value }))
+                    }
+                    placeholder="Tell us about your event date, quantity, flavors, pickup timing, or shipping request."
+                    required
+                  />
+                </label>
+
+                <button type="submit" className={styles.submitButton}>
+                  {isSendingContactForm ? "Sending..." : "Send Message"}
+                </button>
+              </form>
+
+              {contactError ? (
+                <div className={styles.successMessage}>
+                  <strong>Message could not be sent.</strong>
+                  <p>{contactError}</p>
+                </div>
+              ) : null}
+
+              {contactSuccessMessage ? (
+                <div className={styles.successMessage}>
+                  <strong>Message received.</strong>
+                  <p>{contactSuccessMessage}</p>
                 </div>
               ) : null}
             </div>
@@ -698,6 +909,75 @@ export default function Home() {
 
               <button type="button" className={styles.submitButton} onClick={confirmSourdoughSelection}>
                 Add Sourdough to Cart
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isCheckoutReviewOpen ? (
+        <div className={styles.modalOverlay} role="presentation" onClick={closeCheckoutReview}>
+          <div
+            className={styles.modalCard}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="checkout-review-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <div>
+                <p className={styles.kicker}>Before Checkout</p>
+                <h2 id="checkout-review-title">Please review pickup and delivery details</h2>
+                <p className={styles.modalIntro}>
+                  Yes Bakery & More is located in Union City, California. All standard orders are prepared for
+                  pickup in Union City, and the pickup address will be provided by email after checkout.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className={styles.modalClose}
+                onClick={closeCheckoutReview}
+                aria-label="Close checkout review"
+              >
+                x
+              </button>
+            </div>
+
+            <div className={styles.reviewGrid}>
+              <div className={styles.reviewNotice}>
+                <strong>Pickup notice</strong>
+                <p>Orders must be placed at least 48 hours in advance.</p>
+                <p>Pickup takes place in Union City, California.</p>
+                <p>The exact pickup address will be included in the checkout email.</p>
+              </div>
+
+              <div className={styles.reviewNotice}>
+                <strong>Shipping request</strong>
+                <p>Shipping is not guaranteed for every order.</p>
+                <p>Shipping may be available upon arrangement depending on the item and destination.</p>
+                <p>
+                  Current request:{" "}
+                  {checkoutForm.fulfillmentMethod === "shipping"
+                    ? checkoutForm.shippingRequest || "Shipping requested. We will review the details."
+                    : "Pickup selected."}
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.modalFooter}>
+              <div className={styles.modalSummary}>
+                <strong>Order readiness</strong>
+                <span>{checkoutForm.pickupDate}</span>
+                <p>
+                  {checkoutForm.fulfillmentMethod === "shipping"
+                    ? "Shipping request will be reviewed after payment."
+                    : "Pickup instructions will be sent by email after payment."}
+                </p>
+              </div>
+
+              <button type="button" className={styles.submitButton} onClick={continueToStripeCheckout}>
+                Continue to Stripe
               </button>
             </div>
           </div>

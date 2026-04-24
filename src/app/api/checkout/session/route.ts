@@ -31,6 +31,8 @@ export async function GET(request: NextRequest) {
       customerName: session.metadata?.customer_name || session.customer_details?.name || "",
       phone: session.metadata?.phone || session.customer_details?.phone || "",
       pickupDate: session.metadata?.pickup_date || "",
+      fulfillmentMethod: session.metadata?.fulfillment_method || "",
+      shippingRequest: session.metadata?.shipping_request || "",
       notes: session.metadata?.notes || "",
       orderSummary: session.metadata?.order_summary || "",
       paymentStatus: session.payment_status || "",

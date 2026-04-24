@@ -10,6 +10,8 @@ type SessionDetails = {
   customerName: string;
   phone: string;
   pickupDate: string;
+  fulfillmentMethod: string;
+  shippingRequest: string;
   notes: string;
   orderSummary: string;
   paymentStatus: string;
@@ -164,6 +166,14 @@ function CheckoutSuccessContent() {
                 <span style={{ color: "#94654e", fontWeight: 700 }}>Pickup date</span>
                 <strong style={{ color: "#5f311c" }}>{formatPickupDate(sessionDetails.pickupDate)}</strong>
               </div>
+              <div style={{ display: "grid", gap: "4px" }}>
+                <span style={{ color: "#94654e", fontWeight: 700 }}>Fulfillment</span>
+                <strong style={{ color: "#5f311c" }}>
+                  {sessionDetails.fulfillmentMethod
+                    ? `${sessionDetails.fulfillmentMethod.charAt(0).toUpperCase()}${sessionDetails.fulfillmentMethod.slice(1)}`
+                    : "Pickup"}
+                </strong>
+              </div>
             </div>
 
             <div style={{ display: "grid", gap: "10px" }}>
@@ -200,6 +210,13 @@ function CheckoutSuccessContent() {
               <div style={{ display: "grid", gap: "8px" }}>
                 <strong style={{ color: "#64351e" }}>Order notes</strong>
                 <span style={{ color: "#6f5143", lineHeight: 1.7 }}>{sessionDetails.notes}</span>
+              </div>
+            ) : null}
+
+            {sessionDetails.shippingRequest && sessionDetails.shippingRequest !== "None" ? (
+              <div style={{ display: "grid", gap: "8px" }}>
+                <strong style={{ color: "#64351e" }}>Shipping request</strong>
+                <span style={{ color: "#6f5143", lineHeight: 1.7 }}>{sessionDetails.shippingRequest}</span>
               </div>
             ) : null}
           </div>
