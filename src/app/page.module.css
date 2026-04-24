@@ -556,11 +556,19 @@
 
 .reviewNotice strong {
   color: #64351e;
+  font-size: 1.2rem;
 }
 
 .reviewNotice p {
   color: #6f5143;
   line-height: 1.7;
+}
+
+.reviewNotice p:first-of-type {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #5f311c;
+  letter-spacing: 0.02em;
 }
 
 .modalOverlay {

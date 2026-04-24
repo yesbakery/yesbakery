@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Resend } from "resend";
 import { createShippingRequest } from "../../../lib/shipping-requests";
 
 type ShippingRequestPayload = {
@@ -28,6 +29,9 @@ function badRequest(message: string, status = 400) {
 }
 
 export async function POST(request: NextRequest) {
+  const resendApiKey = process.env.RESEND_API_KEY?.trim() || "";
+  const resendFromEmail = process.env.RESEND_FROM_EMAIL?.trim() || "onboarding@resend.dev";
+
   let payload: ShippingRequestPayload;
 
   try {
@@ -82,6 +86,30 @@ export async function POST(request: NextRequest) {
     orderSummary,
     cart,
   });
+
+  if (resendApiKey && resendApiKey !== "re_xxxxxxxxx") {
+    const resend = new Resend(resendApiKey);
+
+    await resend.emails.send({
+      from: resendFromEmail,
+      to: "yesbakery@gmail.com",
+      subject: `Shipping arrangement request from ${fullName}`,
+      replyTo: email,
+      html: `
+        <h2>New Shipping Arrangement Request</h2>
+        <p><strong>Name:</strong> ${fullName}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Phone:</strong> ${phone || "Not provided"}</p>
+        <p><strong>Requested date:</strong> ${pickupDate}</p>
+        <p><strong>Selected items:</strong> ${orderSummary}</p>
+        <p><strong>Shipping details:</strong></p>
+        <p>${shippingRequest.replace(/\n/g, "<br />")}</p>
+        ${notes ? `<p><strong>Order notes:</strong> ${notes.replace(/\n/g, "<br />")}</p>` : ""}
+        <p><strong>Request ID:</strong> ${savedRequest.id}</p>
+        <p>This request is also available in the backend shipping dashboard for approval or rejection.</p>
+      `,
+    });
+  }
 
   return NextResponse.json({ ok: true, requestId: savedRequest.id });
 }

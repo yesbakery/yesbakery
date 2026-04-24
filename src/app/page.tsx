@@ -1073,24 +1073,20 @@ export default function Home() {
 
             <div className={styles.reviewGrid}>
               <div className={styles.reviewNotice}>
-                <strong>Pickup notice</strong>
+                <strong>Important Pickup Notice</strong>
+                <p>YOU ARE PICKING UP IN UNION CITY, CALIFORNIA.</p>
                 <p>Orders must be placed at least 48 hours in advance.</p>
-                <p>Pickup takes place in Union City, California.</p>
-                <p>The exact pickup address will be included in the checkout email.</p>
+                <p>The exact pickup address will be included in your email after checkout.</p>
               </div>
 
               <div className={styles.reviewNotice}>
-                <strong>Shipping request</strong>
-                <p>Shipping is not guaranteed for every order.</p>
-                <p>Shipping may be available upon arrangement depending on the item and destination.</p>
-                <p>Approved shipping requests will receive a code to continue to checkout.</p>
+                <strong>Order Status</strong>
                 <p>
-                  Current request:{" "}
                   {checkoutForm.fulfillmentMethod === "shipping-request"
-                    ? checkoutForm.shippingRequest || "Shipping requested. We will review the details."
+                    ? "Your shipping request will be reviewed by Yes Bakery before payment is allowed."
                     : checkoutForm.fulfillmentMethod === "shipping-code"
                       ? "Shipping approval code entered."
-                    : "Pickup selected."}
+                      : "Pickup selected for Union City, California."}
                 </p>
               </div>
             </div>
@@ -1111,7 +1107,7 @@ export default function Home() {
               </div>
 
               <button type="button" className={styles.submitButton} onClick={continueToStripeCheckout}>
-                Continue to Stripe
+                Continue to Payment
               </button>
             </div>
           </div>
