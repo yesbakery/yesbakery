@@ -17,7 +17,7 @@ type CheckoutForm = {
   email: string;
   phone: string;
   pickupDate: string;
-  fulfillmentMethod: "pickup" | "shipping";
+  fulfillmentMethod: "pickup" | "shipping-request" | "shipping-code";
   shippingRequest: string;
   shippingApprovalCode: string;
   notes: string;
@@ -341,7 +341,7 @@ export default function Home() {
       return;
     }
 
-    if (checkoutForm.fulfillmentMethod === "shipping" && !checkoutForm.shippingApprovalCode.trim()) {
+    if (checkoutForm.fulfillmentMethod === "shipping-request") {
       void submitShippingRequest();
       return;
     }
@@ -704,9 +704,8 @@ export default function Home() {
               <p className={styles.kicker}>Checkout</p>
               <h2>Complete the order details and pay with Stripe</h2>
               <p className={styles.checkoutIntro}>
-                Customers can choose pickup in Union City or request a shipping arrangement. Shipping requests
-                must be approved before payment, and approved customers will receive a code to continue to
-                checkout.
+                Customers can choose pickup, request shipping approval, or continue with an existing shipping
+                approval code.
               </p>
 
               <form className={styles.checkoutForm} onSubmit={handleCheckoutSubmit}>
@@ -771,33 +770,38 @@ export default function Home() {
                     }
                   >
                     <option value="pickup">Pick up from Union City, California.</option>
-                    <option value="shipping">Request Shipping Arrangement (Requires Approval Prior to Payment)</option>
+                    <option value="shipping-request">Request Shipping Arrangement (Requires Approval Prior to Payment)</option>
+                    <option value="shipping-code">I have a Shipping Approval Code</option>
                   </select>
                 </label>
 
-                <label>
-                  Shipping Arrangement Request
-                  <textarea
-                    rows={3}
-                    value={checkoutForm.shippingRequest}
-                    onChange={(event) =>
-                      setCheckoutForm((current) => ({ ...current, shippingRequest: event.target.value }))
-                    }
-                    placeholder="Tell us your city, state, shipping details, and what you need shipped. If approved, you will receive a code to continue to checkout."
-                  />
-                </label>
+                {checkoutForm.fulfillmentMethod === "shipping-request" ? (
+                  <label>
+                    Shipping Arrangement Request
+                    <textarea
+                      rows={3}
+                      value={checkoutForm.shippingRequest}
+                      onChange={(event) =>
+                        setCheckoutForm((current) => ({ ...current, shippingRequest: event.target.value }))
+                      }
+                      placeholder="Tell us your city, state, shipping details, and what you need shipped. If approved, you will receive a code to continue to checkout."
+                    />
+                  </label>
+                ) : null}
 
-                <label>
-                  I have a Shipping Approval Code
-                  <input
-                    type="text"
-                    value={checkoutForm.shippingApprovalCode}
-                    onChange={(event) =>
-                      setCheckoutForm((current) => ({ ...current, shippingApprovalCode: event.target.value }))
-                    }
-                    placeholder="Enter your approval code to continue to checkout"
-                  />
-                </label>
+                {checkoutForm.fulfillmentMethod === "shipping-code" ? (
+                  <label>
+                    Shipping Approval Code
+                    <input
+                      type="text"
+                      value={checkoutForm.shippingApprovalCode}
+                      onChange={(event) =>
+                        setCheckoutForm((current) => ({ ...current, shippingApprovalCode: event.target.value }))
+                      }
+                      placeholder="Enter your approval code to continue to checkout"
+                    />
+                  </label>
+                ) : null}
 
                 <label>
                   Order Notes
@@ -820,7 +824,7 @@ export default function Home() {
                     ? "Sending Shipping Request..."
                     : isRedirectingToCheckout
                       ? "Redirecting to Stripe..."
-                      : checkoutForm.fulfillmentMethod === "shipping" && !checkoutForm.shippingApprovalCode.trim()
+                      : checkoutForm.fulfillmentMethod === "shipping-request"
                         ? "Request Shipping Approval"
                         : "Review Before Stripe"}
                 </button>
@@ -835,7 +839,7 @@ export default function Home() {
               {checkoutError ? (
                 <div className={styles.successMessage}>
                   <strong>
-                    {checkoutForm.fulfillmentMethod === "shipping" && !checkoutForm.shippingApprovalCode.trim()
+                    {checkoutForm.fulfillmentMethod === "shipping-request"
                       ? "Shipping request update."
                       : "Stripe checkout could not start."}
                   </strong>
@@ -1082,8 +1086,10 @@ export default function Home() {
                 <p>Approved shipping requests will receive a code to continue to checkout.</p>
                 <p>
                   Current request:{" "}
-                  {checkoutForm.fulfillmentMethod === "shipping"
+                  {checkoutForm.fulfillmentMethod === "shipping-request"
                     ? checkoutForm.shippingRequest || "Shipping requested. We will review the details."
+                    : checkoutForm.fulfillmentMethod === "shipping-code"
+                      ? "Shipping approval code entered."
                     : "Pickup selected."}
                 </p>
               </div>
@@ -1094,10 +1100,12 @@ export default function Home() {
                 <strong>Order readiness</strong>
                 <span>{checkoutForm.pickupDate}</span>
                 <p>
-                  {checkoutForm.fulfillmentMethod === "shipping"
+                  {checkoutForm.fulfillmentMethod === "shipping-code"
                     ? checkoutForm.shippingApprovalCode.trim()
                       ? "Shipping approval code entered. If the code is valid, you can continue to payment."
-                      : "Shipping requests must be approved before payment. Approved customers receive a checkout code by email."
+                      : "A shipping approval code is required before payment."
+                    : checkoutForm.fulfillmentMethod === "shipping-request"
+                      ? "Shipping requests must be approved before payment. Approved customers receive a checkout code by email."
                     : "Pickup instructions will be sent by email after payment."}
                 </p>
               </div>

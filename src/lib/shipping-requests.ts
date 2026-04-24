@@ -1,5 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { getSupabaseServerClient } from "./supabase-server";
 
 export type StoredShippingCartItem = {
   id: string;
@@ -14,7 +13,7 @@ export type StoredShippingCartItem = {
 
 export type ShippingRequestRecord = {
   id: string;
-  status: "pending" | "approved";
+  status: "pending" | "approved" | "rejected";
   fullName: string;
   email: string;
   phone: string;
@@ -27,87 +26,173 @@ export type ShippingRequestRecord = {
   approvalCode: string | null;
   approvalUrl: string | null;
   approvedAt: string | null;
+  rejectedAt: string | null;
 };
 
-const dataDirectory = path.join(process.cwd(), "data");
-const shippingRequestsFilePath = path.join(dataDirectory, "shipping-requests.json");
+type ShippingRequestRow = {
+  id: string;
+  status: ShippingRequestRecord["status"];
+  full_name: string;
+  email: string;
+  phone: string;
+  pickup_date: string;
+  shipping_request: string;
+  notes: string;
+  order_summary: string;
+  cart: ShippingRequestRecord["cart"];
+  created_at: string;
+  approval_code: string | null;
+  approval_url: string | null;
+  approved_at: string | null;
+  rejected_at: string | null;
+};
 
-async function readShippingRequests() {
-  try {
-    const contents = await readFile(shippingRequestsFilePath, "utf8");
-    return JSON.parse(contents) as ShippingRequestRecord[];
-  } catch {
-    return [];
-  }
+function mapRowToRecord(row: ShippingRequestRow): ShippingRequestRecord {
+  return {
+    id: row.id,
+    status: row.status,
+    fullName: row.full_name,
+    email: row.email,
+    phone: row.phone,
+    pickupDate: row.pickup_date,
+    shippingRequest: row.shipping_request,
+    notes: row.notes,
+    orderSummary: row.order_summary,
+    cart: Array.isArray(row.cart) ? row.cart : [],
+    createdAt: row.created_at,
+    approvalCode: row.approval_code,
+    approvalUrl: row.approval_url,
+    approvedAt: row.approved_at,
+    rejectedAt: row.rejected_at,
+  };
 }
 
-async function writeShippingRequests(records: ShippingRequestRecord[]) {
-  await mkdir(dataDirectory, { recursive: true });
-  await writeFile(shippingRequestsFilePath, JSON.stringify(records, null, 2));
+function getClientOrThrow() {
+  const supabase = getSupabaseServerClient();
+
+  if (!supabase) {
+    throw new Error("Supabase is not configured yet. Add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.");
+  }
+
+  return supabase;
 }
 
 export async function listShippingRequests() {
-  return readShippingRequests();
+  const supabase = getClientOrThrow();
+  const { data, error } = await supabase.from("shipping_requests").select("*").order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error("Shipping requests could not be loaded from Supabase.");
+  }
+
+  return (data as ShippingRequestRow[]).map(mapRowToRecord);
 }
 
 export async function getShippingRequestById(requestId: string) {
-  const existingRequests = await readShippingRequests();
-  return existingRequests.find((record) => record.id === requestId) || null;
+  const supabase = getClientOrThrow();
+  const { data, error } = await supabase
+    .from("shipping_requests")
+    .select("*")
+    .eq("id", requestId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error("Shipping request could not be loaded from Supabase.");
+  }
+
+  return data ? mapRowToRecord(data as ShippingRequestRow) : null;
 }
 
 export async function createShippingRequest(
-  request: Omit<ShippingRequestRecord, "id" | "status" | "createdAt" | "approvalCode" | "approvalUrl" | "approvedAt">,
+  request: Omit<
+    ShippingRequestRecord,
+    "id" | "status" | "createdAt" | "approvalCode" | "approvalUrl" | "approvedAt" | "rejectedAt"
+  >,
 ) {
-  const existingRequests = await readShippingRequests();
-  const nextRecord: ShippingRequestRecord = {
-    id: crypto.randomUUID(),
-    status: "pending",
-    createdAt: new Date().toISOString(),
-    approvalCode: null,
-    approvalUrl: null,
-    approvedAt: null,
-    ...request,
-  };
+  const supabase = getClientOrThrow();
+  const { data, error } = await supabase
+    .from("shipping_requests")
+    .insert({
+      status: "pending",
+      full_name: request.fullName,
+      email: request.email,
+      phone: request.phone,
+      pickup_date: request.pickupDate,
+      shipping_request: request.shippingRequest,
+      notes: request.notes,
+      order_summary: request.orderSummary,
+      cart: request.cart,
+      approval_code: null,
+      approval_url: null,
+      approved_at: null,
+      rejected_at: null,
+    })
+    .select("*")
+    .single();
 
-  await writeShippingRequests([nextRecord, ...existingRequests]);
-  return nextRecord;
-}
-
-export async function approveShippingRequest(
-  requestId: string,
-  approvalCode: string,
-  approvalUrl: string,
-) {
-  const existingRequests = await readShippingRequests();
-  let approvedRecord: ShippingRequestRecord | null = null;
-
-  const updatedRequests = existingRequests.map((record) => {
-    if (record.id !== requestId) {
-      return record;
-    }
-
-    approvedRecord = {
-      ...record,
-      status: "approved",
-      approvalCode,
-      approvalUrl,
-      approvedAt: new Date().toISOString(),
-    };
-
-    return approvedRecord;
-  });
-
-  if (!approvedRecord) {
-    return null;
+  if (error || !data) {
+    throw new Error("Shipping request could not be saved to Supabase.");
   }
 
-  await writeShippingRequests(updatedRequests);
-  return approvedRecord;
+  return mapRowToRecord(data as ShippingRequestRow);
+}
+
+export async function approveShippingRequest(requestId: string, approvalCode: string, approvalUrl: string) {
+  const supabase = getClientOrThrow();
+  const { data, error } = await supabase
+    .from("shipping_requests")
+    .update({
+      status: "approved",
+      approval_code: approvalCode,
+      approval_url: approvalUrl,
+      approved_at: new Date().toISOString(),
+      rejected_at: null,
+    })
+    .eq("id", requestId)
+    .select("*")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error("Shipping request could not be approved.");
+  }
+
+  return data ? mapRowToRecord(data as ShippingRequestRow) : null;
+}
+
+export async function rejectShippingRequest(requestId: string) {
+  const supabase = getClientOrThrow();
+  const { data, error } = await supabase
+    .from("shipping_requests")
+    .update({
+      status: "rejected",
+      rejected_at: new Date().toISOString(),
+      approval_code: null,
+      approval_url: null,
+      approved_at: null,
+    })
+    .eq("id", requestId)
+    .select("*")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error("Shipping request could not be rejected.");
+  }
+
+  return data ? mapRowToRecord(data as ShippingRequestRow) : null;
 }
 
 export async function findApprovedShippingRequestByCode(code: string) {
-  const existingRequests = await readShippingRequests();
-  return existingRequests.find(
-    (record) => record.status === "approved" && record.approvalCode === code.trim(),
-  );
+  const supabase = getClientOrThrow();
+  const { data, error } = await supabase
+    .from("shipping_requests")
+    .select("*")
+    .eq("status", "approved")
+    .eq("approval_code", code.trim())
+    .maybeSingle();
+
+  if (error) {
+    throw new Error("Shipping approval code could not be checked.");
+  }
+
+  return data ? mapRowToRecord(data as ShippingRequestRow) : null;
 }

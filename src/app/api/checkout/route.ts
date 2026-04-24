@@ -91,11 +91,11 @@ export async function POST(request: NextRequest) {
   }
 
   const approvedShippingRequest =
-    fulfillmentMethod === "shipping" && shippingApprovalCode
+    fulfillmentMethod === "shipping-code" && shippingApprovalCode
       ? await findApprovedShippingRequestByCode(shippingApprovalCode)
       : null;
 
-  if (fulfillmentMethod === "shipping" && !approvedShippingRequest) {
+  if (fulfillmentMethod === "shipping-code" && !approvedShippingRequest) {
     return badRequest("A valid shipping approval code is required before shipping orders can continue to payment.");
   }
 

@@ -50,6 +50,22 @@ function formatPickupDate(value: string) {
       }).format(date);
 }
 
+function formatFulfillmentMethod(value: string) {
+  if (value === "shipping-code") {
+    return "Shipping";
+  }
+
+  if (value === "shipping-request") {
+    return "Shipping Request";
+  }
+
+  if (!value) {
+    return "Pickup";
+  }
+
+  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+}
+
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = useMemo(() => searchParams.get("session_id") || "", [searchParams]);
@@ -168,11 +184,7 @@ function CheckoutSuccessContent() {
               </div>
               <div style={{ display: "grid", gap: "4px" }}>
                 <span style={{ color: "#94654e", fontWeight: 700 }}>Fulfillment</span>
-                <strong style={{ color: "#5f311c" }}>
-                  {sessionDetails.fulfillmentMethod
-                    ? `${sessionDetails.fulfillmentMethod.charAt(0).toUpperCase()}${sessionDetails.fulfillmentMethod.slice(1)}`
-                    : "Pickup"}
-                </strong>
+                <strong style={{ color: "#5f311c" }}>{formatFulfillmentMethod(sessionDetails.fulfillmentMethod)}</strong>
               </div>
             </div>
 

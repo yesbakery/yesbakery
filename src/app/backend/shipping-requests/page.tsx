@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 type ShippingRequestRecord = {
   id: string;
-  status: "pending" | "approved";
+  status: "pending" | "approved" | "rejected";
   fullName: string;
   email: string;
   phone: string;
@@ -16,6 +16,7 @@ type ShippingRequestRecord = {
   approvalCode: string | null;
   approvalUrl: string | null;
   approvedAt: string | null;
+  rejectedAt: string | null;
 };
 
 function formatDate(value: string) {
@@ -28,6 +29,7 @@ export default function ShippingRequestsBackendPage() {
   const [loading, setLoading] = useState(true);
   const [actionMessage, setActionMessage] = useState("");
   const [approvingId, setApprovingId] = useState("");
+  const [rejectingId, setRejectingId] = useState("");
 
   async function loadRequests() {
     setLoading(true);
@@ -73,6 +75,39 @@ export default function ShippingRequestsBackendPage() {
     }
   }
 
+  async function rejectRequest(requestId: string) {
+    setActionMessage("");
+    setRejectingId(requestId);
+
+    try {
+      const response = await fetch("/api/admin/shipping-requests/reject", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ requestId }),
+      });
+
+      const payload = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Shipping rejection could not be sent.");
+      }
+
+      setActionMessage("Shipping rejection email sent successfully.");
+      await loadRequests();
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : "Shipping rejection could not be sent.");
+    } finally {
+      setRejectingId("");
+    }
+  }
+
+  async function logout() {
+    await fetch("/api/admin/logout", { method: "POST" });
+    window.location.href = "/backend/login";
+  }
+
   return (
     <main
       style={{
@@ -101,6 +136,22 @@ export default function ShippingRequestsBackendPage() {
             Review shipping arrangement requests, approve the ones you want to fulfill, and send the customer
             their approval code with a preloaded cart link.
           </p>
+          <button
+            type="button"
+            onClick={logout}
+            style={{
+              marginTop: "18px",
+              padding: "11px 16px",
+              borderRadius: "999px",
+              border: 0,
+              background: "rgba(255, 243, 236, 0.9)",
+              color: "#64351e",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            Sign Out
+          </button>
         </header>
 
         {actionMessage ? (
@@ -171,12 +222,13 @@ export default function ShippingRequestsBackendPage() {
                   style={{
                     padding: "8px 14px",
                     borderRadius: "999px",
-                    background: request.status === "approved" ? "#dcefdc" : "#f8dfcf",
+                    background:
+                      request.status === "approved" ? "#dcefdc" : request.status === "rejected" ? "#f0dddd" : "#f8dfcf",
                     color: "#64351e",
                     fontWeight: 800,
                   }}
                 >
-                  {request.status === "approved" ? "Approved" : "Pending"}
+                  {request.status === "approved" ? "Approved" : request.status === "rejected" ? "Rejected" : "Pending"}
                 </span>
               </div>
 
@@ -217,24 +269,43 @@ export default function ShippingRequestsBackendPage() {
               </div>
 
               {request.status === "pending" ? (
-                <button
-                  type="button"
-                  onClick={() => approveRequest(request.id)}
-                  disabled={approvingId === request.id}
-                  style={{
-                    marginTop: "18px",
-                    padding: "13px 20px",
-                    border: 0,
-                    borderRadius: "999px",
-                    color: "#fff8f4",
-                    background: "linear-gradient(135deg, #c47a45, #a6542d)",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                    opacity: approvingId === request.id ? 0.55 : 1,
-                  }}
-                >
-                  {approvingId === request.id ? "Approving..." : "Approve and Send Code"}
-                </button>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginTop: "18px" }}>
+                  <button
+                    type="button"
+                    onClick={() => approveRequest(request.id)}
+                    disabled={approvingId === request.id || rejectingId === request.id}
+                    style={{
+                      padding: "13px 20px",
+                      border: 0,
+                      borderRadius: "999px",
+                      color: "#fff8f4",
+                      background: "linear-gradient(135deg, #c47a45, #a6542d)",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      opacity: approvingId === request.id || rejectingId === request.id ? 0.55 : 1,
+                    }}
+                  >
+                    {approvingId === request.id ? "Approving..." : "Approve and Send Code"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => rejectRequest(request.id)}
+                    disabled={approvingId === request.id || rejectingId === request.id}
+                    style={{
+                      padding: "13px 20px",
+                      border: 0,
+                      borderRadius: "999px",
+                      color: "#64351e",
+                      background: "#f5ddd0",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      opacity: approvingId === request.id || rejectingId === request.id ? 0.55 : 1,
+                    }}
+                  >
+                    {rejectingId === request.id ? "Rejecting..." : "Reject Request"}
+                  </button>
+                </div>
               ) : null}
             </article>
           ))
