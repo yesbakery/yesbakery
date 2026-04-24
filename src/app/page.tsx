@@ -1107,7 +1107,7 @@ export default function Home() {
               </div>
 
               <button type="button" className={styles.submitButton} onClick={continueToStripeCheckout}>
-                Continue to Payment
+                Proceed to Checkout
               </button>
             </div>
           </div>
