@@ -41,7 +41,7 @@ export default function CheckoutCancelPage() {
           again whenever you are ready.
         </p>
         <Link
-          href="/#checkout"
+          href="/cart"
           style={{
             display: "inline-flex",
             marginTop: "22px",

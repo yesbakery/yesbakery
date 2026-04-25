@@ -15,6 +15,7 @@ type ShippingRequestPayload = {
     email?: string;
     phone?: string;
     pickupDate?: string;
+    shippingAddress?: string;
     shippingRequest?: string;
     notes?: string;
   };
@@ -45,10 +46,11 @@ export async function POST(request: NextRequest) {
   const email = clean(payload.checkoutForm?.email);
   const phone = clean(payload.checkoutForm?.phone);
   const pickupDate = clean(payload.checkoutForm?.pickupDate);
+  const shippingAddress = clean(payload.checkoutForm?.shippingAddress);
   const shippingRequest = clean(payload.checkoutForm?.shippingRequest);
   const notes = clean(payload.checkoutForm?.notes);
 
-  if (!fullName || !email || !pickupDate || !shippingRequest || rawCart.length === 0) {
+  if (!fullName || !email || !pickupDate || !shippingAddress || !shippingRequest || rawCart.length === 0) {
     return badRequest("Please complete the shipping request details before sending.");
   }
 
@@ -76,12 +78,18 @@ export async function POST(request: NextRequest) {
     })
     .join(" | ");
 
+  const formattedShippingRequest = [
+    `Delivery address: ${shippingAddress}`,
+    `Desired delivered-by date: ${pickupDate}`,
+    `Arrangement details: ${shippingRequest}`,
+  ].join("\n\n");
+
   const savedRequest = await createShippingRequest({
     fullName,
     email,
     phone,
     pickupDate,
-    shippingRequest,
+    shippingRequest: formattedShippingRequest,
     notes,
     orderSummary,
     cart,
@@ -100,9 +108,10 @@ export async function POST(request: NextRequest) {
         <p><strong>Name:</strong> ${fullName}</p>
         <p><strong>Email:</strong> ${email}</p>
         <p><strong>Phone:</strong> ${phone || "Not provided"}</p>
-        <p><strong>Requested date:</strong> ${pickupDate}</p>
+        <p><strong>Delivery address:</strong> ${shippingAddress.replace(/\n/g, "<br />")}</p>
+        <p><strong>Desired delivered-by date:</strong> ${pickupDate}</p>
         <p><strong>Selected items:</strong> ${orderSummary}</p>
-        <p><strong>Shipping details:</strong></p>
+        <p><strong>Shipping arrangement details:</strong></p>
         <p>${shippingRequest.replace(/\n/g, "<br />")}</p>
         ${notes ? `<p><strong>Order notes:</strong> ${notes.replace(/\n/g, "<br />")}</p>` : ""}
         <p><strong>Request ID:</strong> ${savedRequest.id}</p>

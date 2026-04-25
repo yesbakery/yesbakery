@@ -273,7 +273,7 @@ function CheckoutSuccessContent() {
             Back to bakery
           </Link>
           <Link
-            href="/#menu"
+            href="/shop"
             style={{
               display: "inline-flex",
               padding: "13px 20px",

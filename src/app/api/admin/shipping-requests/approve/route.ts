@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
         email: existingRecord.email,
         phone: existingRecord.phone,
         pickupDate: existingRecord.pickupDate,
-        fulfillmentMethod: "shipping",
+        fulfillmentMethod: "shipping-code",
         shippingRequest: existingRecord.shippingRequest,
         shippingApprovalCode: approvalCode,
         notes: existingRecord.notes,
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     "utf8",
   ).toString("base64url");
 
-  const approvalUrl = `${origin}/?checkout=${serializedCart}&shippingRequest=${existingRecord.id}&shippingCode=${approvalCode}#checkout`;
+  const approvalUrl = `${origin}/cart?checkout=${serializedCart}&shippingRequest=${existingRecord.id}&shippingCode=${approvalCode}`;
   const approvedRecord = await approveShippingRequest(requestId, approvalCode, approvalUrl);
 
   if (!approvedRecord) {
