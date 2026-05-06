@@ -545,7 +545,7 @@ export function CartContent() {
                     />
                     {checkoutForm.fulfillmentMethod === "pickup" ? (
                       <span className={styles.fieldHint}>
-                        Pickup orders are accepted Monday through Thursday for the upcoming Saturday or Sunday only.
+                        Pickup orders are accepted Monday through Thursday, and pickup dates must be on a future Saturday or Sunday.
                       </span>
                     ) : (
                       <span className={styles.fieldHint}>Please choose a date at least 48 hours away.</span>

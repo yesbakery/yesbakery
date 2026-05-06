@@ -175,14 +175,7 @@ export function getEarliestPickupDate() {
 }
 
 export function getLatestPickupDate() {
-  const earliestPickupDate = getEarliestPickupDate();
-  if (!earliestPickupDate) {
-    return "";
-  }
-
-  const date = new Date(`${earliestPickupDate}T00:00:00`);
-  date.setDate(date.getDate() + 1);
-  return toLocalDateString(date);
+  return "";
 }
 
 export function isPickupDateValid(value: string, fulfillmentMethod: CheckoutForm["fulfillmentMethod"] = "pickup") {
@@ -199,9 +192,7 @@ export function isPickupDateValid(value: string, fulfillmentMethod: CheckoutForm
   }
 
   const earliestPickupDate = getEarliestPickupDate();
-  const latestPickupDate = getLatestPickupDate();
-
-  if (!earliestPickupDate || !latestPickupDate || value < earliestPickupDate || value > latestPickupDate) {
+  if (!earliestPickupDate || value < earliestPickupDate) {
     return false;
   }
 
