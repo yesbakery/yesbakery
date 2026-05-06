@@ -1115,6 +1115,27 @@
   min-width: 220px;
 }
 
+.codeHelpPanel {
+  display: grid;
+  gap: 4px;
+  margin-left: auto;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 245, 237, 0.95);
+  border: 1px solid rgba(107, 68, 45, 0.12);
+  color: #64351e;
+}
+
+.codeHelpPanel strong {
+  font-size: 0.98rem;
+}
+
+.codeHelpPanel p {
+  margin: 0;
+  color: #7a5b4a;
+  line-height: 1.45;
+}
+
 .cartToast {
   position: fixed;
   top: max(20px, env(safe-area-inset-top, 0px) + 18px);

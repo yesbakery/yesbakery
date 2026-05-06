@@ -164,6 +164,18 @@ export function CartContent() {
       return "Orders must be placed at least 48 hours in advance.";
     }
 
+    if (checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup") {
+      const pickupApprovalCode = checkoutForm.pickupApprovalCode.trim();
+
+      if (!pickupApprovalCode) {
+        return "A pickup code is required before this order can be placed.";
+      }
+
+      if (!pickupApprovalCode.toUpperCase().startsWith("YB-")) {
+        return "Pickup codes must start with YB-.";
+      }
+    }
+
     if (checkoutForm.fulfillmentMethod === "shipping-request") {
       if (!checkoutForm.shippingAddress.trim()) {
         return "Please enter the delivery address for the shipping request.";
@@ -578,6 +590,21 @@ export function CartContent() {
                     </label>
                   ) : null}
 
+                  {checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup" ? (
+                    <label>
+                      Pickup Code
+                      <input
+                        type="text"
+                        value={checkoutForm.pickupApprovalCode}
+                        onChange={(event) =>
+                          setCheckoutForm((current) => ({ ...current, pickupApprovalCode: event.target.value.toUpperCase() }))
+                        }
+                        placeholder="Enter your YB- pickup code"
+                        required
+                      />
+                    </label>
+                  ) : null}
+
                   <label>
                     Order Notes
                     <textarea
@@ -617,24 +644,32 @@ export function CartContent() {
               )}
 
               {checkoutStep === 2 ? (
-                <button
-                  type="button"
-                  className={styles.submitButton}
-                  disabled={isRedirectingToCheckout || isSendingShippingRequest || isSubmittingPickupOrder}
-                  onClick={handleCheckoutContinue}
-                >
-                  {isSendingShippingRequest
-                    ? "Sending Shipping Request..."
-                    : isSubmittingPickupOrder
-                      ? "Placing Pickup Order..."
-                      : isRedirectingToCheckout
-                        ? "Redirecting to Checkout..."
-                        : checkoutForm.fulfillmentMethod === "shipping-request"
-                          ? "Submit Shipping Request"
-                          : checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup"
-                            ? "Place Order and Pay at Pickup"
-                            : "Continue to Payment"}
-                </button>
+                <>
+                  {checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup" ? (
+                    <div className={styles.codeHelpPanel}>
+                      <strong>No code?</strong>
+                      <p>Text 510-329-8786 and request one.</p>
+                    </div>
+                  ) : null}
+                  <button
+                    type="button"
+                    className={styles.submitButton}
+                    disabled={isRedirectingToCheckout || isSendingShippingRequest || isSubmittingPickupOrder}
+                    onClick={handleCheckoutContinue}
+                  >
+                    {isSendingShippingRequest
+                      ? "Sending Shipping Request..."
+                      : isSubmittingPickupOrder
+                        ? "Placing Pickup Order..."
+                        : isRedirectingToCheckout
+                          ? "Redirecting to Checkout..."
+                          : checkoutForm.fulfillmentMethod === "shipping-request"
+                            ? "Submit Shipping Request"
+                            : checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup"
+                              ? "Place Order and Pay at Pickup"
+                              : "Continue to Payment"}
+                  </button>
+                </>
               ) : null}
             </div>
           </div>
