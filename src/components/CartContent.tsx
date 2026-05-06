@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import Image from "next/image";
 import styles from "../app/page.module.css";
 import {
   CartItem,
@@ -17,6 +18,8 @@ import {
   saveStoredForm,
 } from "../lib/storefront";
 
+type CheckoutStep = 1 | 2;
+
 export function CartContent() {
   const [cart, setCart] = useState<CartItem[]>(readStoredCart);
   const [checkoutForm, setCheckoutForm] = useState<CheckoutForm>(readStoredForm);
@@ -24,7 +27,8 @@ export function CartContent() {
   const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false);
   const [isSendingShippingRequest, setIsSendingShippingRequest] = useState(false);
   const [isSubmittingPickupOrder, setIsSubmittingPickupOrder] = useState(false);
-  const [isCheckoutReviewOpen, setIsCheckoutReviewOpen] = useState(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>(1);
 
   useEffect(() => {
     saveStoredCart(cart);
@@ -44,6 +48,7 @@ export function CartContent() {
         setCheckoutForm((current) => ({
           ...current,
           fulfillmentMethod: "shipping-code",
+          paymentMethod: "stripe",
           shippingApprovalCode: shippingCode,
         }));
       }
@@ -68,6 +73,7 @@ export function CartContent() {
           ...current,
           ...restoredCheckoutForm,
           fulfillmentMethod: "shipping-code",
+          paymentMethod: "stripe",
           shippingApprovalCode: shippingCode || restoredCheckoutForm.shippingApprovalCode || "",
         }));
       }
@@ -80,6 +86,7 @@ export function CartContent() {
   const subtotal = cart.reduce((total, item) => total + item.unitPrice * item.quantity, 0);
   const needsShippingDetails =
     checkoutForm.fulfillmentMethod === "shipping-request" || checkoutForm.fulfillmentMethod === "shipping-code";
+  const hasApprovedShippingCode = checkoutForm.shippingApprovalCode.trim().length > 0;
 
   function updateQuantity(cartKey: string, nextQuantity: number) {
     setCheckoutError("");
@@ -95,40 +102,89 @@ export function CartContent() {
     setCart((currentCart) => currentCart.filter((item) => item.cartKey !== cartKey));
   }
 
-  function handleCheckoutSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
+  function openCheckout() {
     if (cart.length === 0) {
       return;
     }
 
     setCheckoutError("");
+    setCheckoutStep(1);
+    setIsCheckoutOpen(true);
+  }
+
+  function closeCheckout() {
+    setIsCheckoutOpen(false);
+    setCheckoutStep(1);
+  }
+
+  function selectCheckoutType(type: "pickup-online" | "pickup-later" | "shipping-request" | "shipping-code") {
+    setCheckoutError("");
+
+    if (type === "pickup-online") {
+      setCheckoutForm((current) => ({
+        ...current,
+        fulfillmentMethod: "pickup",
+        paymentMethod: "stripe",
+      }));
+    }
+
+    if (type === "pickup-later") {
+      setCheckoutForm((current) => ({
+        ...current,
+        fulfillmentMethod: "pickup",
+        paymentMethod: "pickup",
+      }));
+    }
+
+    if (type === "shipping-request") {
+      setCheckoutForm((current) => ({
+        ...current,
+        fulfillmentMethod: "shipping-request",
+        paymentMethod: "stripe",
+      }));
+    }
+
+    if (type === "shipping-code") {
+      setCheckoutForm((current) => ({
+        ...current,
+        fulfillmentMethod: "shipping-code",
+        paymentMethod: "stripe",
+      }));
+    }
+
+    setCheckoutStep(2);
+  }
+
+  function validateCheckoutDetails() {
+    if (!checkoutForm.fullName.trim() || !checkoutForm.email.trim() || !checkoutForm.phone.trim() || !checkoutForm.pickupDate.trim()) {
+      return "Please complete your name, email, phone, and date before continuing.";
+    }
 
     if (!isPickupDateValid(checkoutForm.pickupDate)) {
-      setCheckoutError("Orders must be placed at least 48 hours in advance.");
-      return;
+      return "Orders must be placed at least 48 hours in advance.";
     }
 
     if (checkoutForm.fulfillmentMethod === "shipping-request") {
-      void submitShippingRequest();
-      return;
+      if (!checkoutForm.shippingAddress.trim()) {
+        return "Please enter the delivery address for the shipping request.";
+      }
+
+      if (!checkoutForm.shippingRequest.trim()) {
+        return "Please tell us where the order would be shipped and any arrangement details.";
+      }
     }
 
-    setIsCheckoutReviewOpen(true);
+    if (checkoutForm.fulfillmentMethod === "shipping-code" && !checkoutForm.shippingApprovalCode.trim()) {
+      return "A shipping approval code is required before shipping orders can continue.";
+    }
+
+    return "";
   }
 
   async function submitShippingRequest() {
-    if (cart.length === 0) {
-      return;
-    }
-
-    if (!checkoutForm.shippingRequest.trim()) {
-      setCheckoutError("Please tell us where the order would be shipped and any arrangement details.");
-      return;
-    }
-
-    if (!checkoutForm.shippingAddress.trim()) {
-      setCheckoutError("Please enter the delivery address for the shipping request.");
+    const validationError = validateCheckoutDetails();
+    if (validationError) {
+      setCheckoutError(validationError);
       return;
     }
 
@@ -165,7 +221,12 @@ export function CartContent() {
   }
 
   async function continueToStripeCheckout() {
-    setIsCheckoutReviewOpen(false);
+    const validationError = validateCheckoutDetails();
+    if (validationError) {
+      setCheckoutError(validationError);
+      return;
+    }
+
     setIsRedirectingToCheckout(true);
 
     try {
@@ -194,7 +255,12 @@ export function CartContent() {
   }
 
   async function submitPickupOrder() {
-    setIsCheckoutReviewOpen(false);
+    const validationError = validateCheckoutDetails();
+    if (validationError) {
+      setCheckoutError(validationError);
+      return;
+    }
+
     setIsSubmittingPickupOrder(true);
 
     try {
@@ -225,14 +291,28 @@ export function CartContent() {
     }
   }
 
+  async function handleCheckoutContinue() {
+    if (checkoutForm.fulfillmentMethod === "shipping-request") {
+      await submitShippingRequest();
+      return;
+    }
+
+    if (checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup") {
+      await submitPickupOrder();
+      return;
+    }
+
+    await continueToStripeCheckout();
+  }
+
   return (
     <>
       <section className={styles.checkoutSection}>
         <div className={styles.checkoutPanel}>
           <div className={styles.checkoutSummary}>
             <p className={styles.kicker}>Your Cart</p>
-            <h2>Review the order, update quantities, and pay securely</h2>
-            <p>Review the cart, confirm pickup details, and continue to payment when you are ready.</p>
+            <h2>Review your order before checkout</h2>
+            <p>Adjust quantities, remove items, and then continue into a cleaner guided checkout experience.</p>
 
             <div className={styles.cartList}>
               {cart.length === 0 ? (
@@ -295,185 +375,18 @@ export function CartContent() {
             </div>
           </div>
 
-          <div className={styles.checkoutCard}>
+          <div className={styles.checkoutLauncherCard}>
             <p className={styles.kicker}>Checkout</p>
-            <h2>Complete the order details and pay securely</h2>
-            <p className={styles.checkoutIntro}>
-              Choose pickup, request a shipping arrangement, or enter an approved shipping code to continue.
+            <h2>Ready to place the order?</h2>
+            <p>
+              Choose from online payment, pay-at-pickup, or shipping arrangements in a step-by-step checkout flow.
             </p>
-
-            <form className={styles.checkoutForm} onSubmit={handleCheckoutSubmit}>
-              <label>
-                Full Name
-                <input
-                  type="text"
-                  value={checkoutForm.fullName}
-                  onChange={(event) =>
-                    setCheckoutForm((current) => ({ ...current, fullName: event.target.value }))
-                  }
-                  required
-                />
-              </label>
-
-              <label>
-                Email
-                <input
-                  type="email"
-                  value={checkoutForm.email}
-                  onChange={(event) =>
-                    setCheckoutForm((current) => ({ ...current, email: event.target.value }))
-                  }
-                  required
-                />
-              </label>
-
-              <label>
-                Phone
-                <input
-                  type="tel"
-                  value={checkoutForm.phone}
-                  onChange={(event) =>
-                    setCheckoutForm((current) => ({ ...current, phone: event.target.value }))
-                  }
-                  required
-                />
-              </label>
-
-              <label>
-                {needsShippingDetails ? "Desired Delivered-By Date" : "Pickup Date"}
-                <input
-                  type="date"
-                  value={checkoutForm.pickupDate}
-                  min={getEarliestPickupDate()}
-                  onChange={(event) =>
-                    setCheckoutForm((current) => ({ ...current, pickupDate: event.target.value }))
-                  }
-                  required
-                />
-              </label>
-
-              <label>
-                Select Your Pick up Option
-                <select
-                  value={checkoutForm.fulfillmentMethod}
-                  onChange={(event) =>
-                    setCheckoutForm((current) => ({
-                      ...current,
-                      fulfillmentMethod: event.target.value as CheckoutForm["fulfillmentMethod"],
-                      paymentMethod:
-                        event.target.value === "pickup" ? current.paymentMethod : "stripe",
-                    }))
-                  }
-                >
-                  <option value="pickup">Pick up from Union City, California.</option>
-                  <option value="shipping-request">Request Shipping Arrangement (Requires Approval Prior to Payment)</option>
-                  <option value="shipping-code">I have a Shipping Approval Code</option>
-                </select>
-              </label>
-
-              {checkoutForm.fulfillmentMethod === "pickup" ? (
-                <label>
-                  Payment Option
-                  <select
-                    value={checkoutForm.paymentMethod}
-                    onChange={(event) =>
-                      setCheckoutForm((current) => ({
-                        ...current,
-                        paymentMethod: event.target.value as CheckoutForm["paymentMethod"],
-                      }))
-                    }
-                  >
-                    <option value="stripe">Pay Online Now</option>
-                    <option value="pickup">Order and Pay at Pickup</option>
-                  </select>
-                </label>
-              ) : null}
-
-              {checkoutForm.fulfillmentMethod === "shipping-request" ? (
-                <>
-                  <label>
-                    Delivery Address
-                    <textarea
-                      rows={3}
-                      value={checkoutForm.shippingAddress}
-                      onChange={(event) =>
-                        setCheckoutForm((current) => ({ ...current, shippingAddress: event.target.value }))
-                      }
-                      placeholder="Street address, city, state, ZIP code, and any delivery instructions."
-                    />
-                  </label>
-
-                  <label>
-                    Shipping Arrangement Request
-                    <textarea
-                      rows={3}
-                      value={checkoutForm.shippingRequest}
-                      onChange={(event) =>
-                        setCheckoutForm((current) => ({ ...current, shippingRequest: event.target.value }))
-                      }
-                      placeholder="Tell us what you need shipped and any arrangement details. If approved, you will receive a code to continue to checkout."
-                    />
-                  </label>
-                </>
-              ) : null}
-
-              {checkoutForm.fulfillmentMethod === "shipping-code" ? (
-                <label>
-                  Shipping Approval Code
-                  <input
-                    type="text"
-                    value={checkoutForm.shippingApprovalCode}
-                    onChange={(event) =>
-                      setCheckoutForm((current) => ({ ...current, shippingApprovalCode: event.target.value }))
-                    }
-                    placeholder="Enter your approval code to continue to checkout"
-                  />
-                </label>
-              ) : null}
-
-              <label>
-                Order Notes
-                <textarea
-                  rows={4}
-                  value={checkoutForm.notes}
-                  onChange={(event) =>
-                    setCheckoutForm((current) => ({ ...current, notes: event.target.value }))
-                  }
-                  placeholder="Special requests, pickup timing, or packaging notes"
-                />
-              </label>
-
-                <button
-                  type="submit"
-                  className={styles.submitButton}
-                  disabled={cart.length === 0 || isRedirectingToCheckout || isSendingShippingRequest || isSubmittingPickupOrder}
-                >
-                  {isSendingShippingRequest
-                    ? "Sending Shipping Request..."
-                    : isSubmittingPickupOrder
-                      ? "Placing Pickup Order..."
-                    : isRedirectingToCheckout
-                      ? "Redirecting to Stripe..."
-                      : checkoutForm.fulfillmentMethod === "shipping-request"
-                        ? "Request Shipping Approval"
-                        : checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup"
-                          ? "Review Pickup Order"
-                          : "Proceed to Checkout"}
-                </button>
-              </form>
-
-            <p className={styles.paymentNote}>
-              Orders must be placed at least 48 hours in advance. Standard orders are prepared for pickup in
-              Union City, California.
-            </p>
-
+            <button type="button" className={styles.submitButton} disabled={cart.length === 0} onClick={openCheckout}>
+              Checkout
+            </button>
             {checkoutError ? (
               <div className={styles.successMessage}>
-                <strong>
-                  {checkoutForm.fulfillmentMethod === "shipping-request"
-                    ? "Shipping request update."
-                    : "Checkout could not continue."}
-                </strong>
+                <strong>Checkout could not continue.</strong>
                 <p>{checkoutError}</p>
               </div>
             ) : null}
@@ -481,81 +394,247 @@ export function CartContent() {
         </div>
       </section>
 
-      {isCheckoutReviewOpen ? (
-        <div className={styles.modalOverlay} role="presentation" onClick={() => setIsCheckoutReviewOpen(false)}>
+      {isCheckoutOpen ? (
+        <div className={styles.modalOverlay} role="presentation" onClick={closeCheckout}>
           <div
-            className={styles.modalCard}
+            className={`${styles.modalCard} ${styles.checkoutWizardCard}`}
             role="dialog"
             aria-modal="true"
-            aria-labelledby="checkout-review-title"
+            aria-labelledby="checkout-wizard-title"
             onClick={(event) => event.stopPropagation()}
           >
+            <div className={styles.checkoutWizardLogo}>
+              <Image src="/assets/new_logo.PNG" alt="" fill sizes="300px" />
+            </div>
+
             <div className={styles.modalHeader}>
               <div>
-                <p className={styles.kicker}>Before Checkout</p>
-                <h2 id="checkout-review-title">Please review pickup and delivery details</h2>
+                <p className={styles.kicker}>Checkout</p>
+                <h2 id="checkout-wizard-title">A simple step-by-step checkout</h2>
                 <p className={styles.modalIntro}>
-                  Yes Bakery & More is located in Union City, California. All standard orders are prepared for
-                  pickup in Union City, and the pickup address will be provided by email after checkout.
+                  {checkoutStep === 1
+                    ? "Choose how you would like to place this order."
+                    : "Enter the details to complete this order."}
                 </p>
               </div>
 
               <button
                 type="button"
                 className={styles.modalClose}
-                onClick={() => setIsCheckoutReviewOpen(false)}
-                aria-label="Close checkout review"
+                onClick={closeCheckout}
+                aria-label="Close checkout"
               >
                 x
               </button>
             </div>
 
-            <div className={styles.reviewGrid}>
-              <div className={styles.reviewNotice}>
-                <strong>Important Pickup Notice</strong>
-                <p>YOU ARE PICKING UP IN UNION CITY, CALIFORNIA.</p>
-                <p>Orders must be placed at least 48 hours in advance.</p>
-                <p>The exact pickup address will be included in your email after checkout.</p>
+            <div className={styles.checkoutSteps}>
+              <div className={`${styles.checkoutStepPill} ${checkoutStep === 1 ? styles.checkoutStepPillActive : ""}`}>
+                1. Order Type
               </div>
-
-              <div className={styles.reviewNotice}>
-                <strong>Order Status</strong>
-                <p>
-                  {checkoutForm.fulfillmentMethod === "shipping-code"
-                    ? "Shipping approval code entered."
-                    : "Pickup selected for Union City, California."}
-                </p>
+              <div className={`${styles.checkoutStepPill} ${checkoutStep === 2 ? styles.checkoutStepPillActive : ""}`}>
+                2. Details
               </div>
             </div>
 
-            <div className={styles.modalFooter}>
-              <div className={styles.modalSummary}>
-                <strong>Order readiness</strong>
-                <span>{checkoutForm.pickupDate}</span>
-                <p>
-                  {checkoutForm.fulfillmentMethod === "shipping-code"
-                    ? checkoutForm.shippingApprovalCode.trim()
-                      ? "Shipping approval code entered. If the code is valid, you can continue to payment."
-                      : "A shipping approval code is required before payment."
-                    : checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup"
-                      ? "This order will be reserved now and paid for at pickup."
-                    : "Pickup instructions will be sent by email after payment."}
-                </p>
-              </div>
+            {checkoutStep === 1 ? (
+              <div className={styles.checkoutOptionGrid}>
+                <button
+                  type="button"
+                  className={styles.checkoutOptionCard}
+                  onClick={() => selectCheckoutType("pickup-online")}
+                >
+                  <strong>Pay online, pick up in Union City</strong>
+                  <p>Pay now online and receive pickup details by email after checkout.</p>
+                </button>
 
-              <button
-                type="button"
-                className={styles.submitButton}
-                onClick={
-                  checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup"
-                    ? submitPickupOrder
-                    : continueToStripeCheckout
-                }
-              >
-                {checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup"
-                  ? "Place Order and Pay at Pickup"
-                  : "Proceed to Checkout"}
-              </button>
+                <button
+                  type="button"
+                  className={styles.checkoutOptionCard}
+                  onClick={() => selectCheckoutType("pickup-later")}
+                >
+                  <strong>Order online, pay at pickup in Union City</strong>
+                  <p>If this is selected, someone will call you to confirm the order before pickup.</p>
+                </button>
+
+                <button
+                  type="button"
+                  className={styles.checkoutOptionCard}
+                  onClick={() => selectCheckoutType("shipping-request")}
+                >
+                  <strong>Request shipping</strong>
+                  <p>Requires approval. Extra lead time is necessary for this type of request, so please plan accordingly.</p>
+                </button>
+
+                {hasApprovedShippingCode ? (
+                  <button
+                    type="button"
+                    className={styles.checkoutOptionCard}
+                    onClick={() => selectCheckoutType("shipping-code")}
+                  >
+                    <strong>Use approved shipping code</strong>
+                    <p>Continue with the shipping approval code that was sent to you.</p>
+                  </button>
+                ) : null}
+              </div>
+            ) : (
+              <div className={styles.checkoutWizardFormWrap}>
+                <div className={styles.checkoutSummaryMini}>
+                  <strong>Order summary</strong>
+                  <p>{itemCount} items</p>
+                  <span>{currency.format(subtotal)}</span>
+                </div>
+
+                <form className={styles.checkoutForm} onSubmit={(event) => event.preventDefault()}>
+                  <label>
+                    Full Name
+                    <input
+                      type="text"
+                      value={checkoutForm.fullName}
+                      onChange={(event) =>
+                        setCheckoutForm((current) => ({ ...current, fullName: event.target.value }))
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    Email
+                    <input
+                      type="email"
+                      value={checkoutForm.email}
+                      onChange={(event) =>
+                        setCheckoutForm((current) => ({ ...current, email: event.target.value }))
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    Phone
+                    <input
+                      type="tel"
+                      value={checkoutForm.phone}
+                      onChange={(event) =>
+                        setCheckoutForm((current) => ({ ...current, phone: event.target.value }))
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    {needsShippingDetails ? "Desired Delivered-By Date" : "Pickup Date"}
+                    <input
+                      type="date"
+                      value={checkoutForm.pickupDate}
+                      min={getEarliestPickupDate()}
+                      onChange={(event) =>
+                        setCheckoutForm((current) => ({ ...current, pickupDate: event.target.value }))
+                      }
+                      required
+                    />
+                  </label>
+
+                  {checkoutForm.fulfillmentMethod === "shipping-request" ? (
+                    <>
+                      <label>
+                        Delivery Address
+                        <textarea
+                          rows={3}
+                          value={checkoutForm.shippingAddress}
+                          onChange={(event) =>
+                            setCheckoutForm((current) => ({ ...current, shippingAddress: event.target.value }))
+                          }
+                          placeholder="Street address, city, state, ZIP code, and any delivery instructions."
+                        />
+                      </label>
+
+                      <label>
+                        Shipping Arrangement Details
+                        <textarea
+                          rows={3}
+                          value={checkoutForm.shippingRequest}
+                          onChange={(event) =>
+                            setCheckoutForm((current) => ({ ...current, shippingRequest: event.target.value }))
+                          }
+                          placeholder="Tell us what you need shipped. Extra lead time is necessary for this type of request, so please plan accordingly."
+                        />
+                      </label>
+                    </>
+                  ) : null}
+
+                  {checkoutForm.fulfillmentMethod === "shipping-code" ? (
+                    <label>
+                      Shipping Approval Code
+                      <input
+                        type="text"
+                        value={checkoutForm.shippingApprovalCode}
+                        onChange={(event) =>
+                          setCheckoutForm((current) => ({ ...current, shippingApprovalCode: event.target.value }))
+                        }
+                        placeholder="Enter your shipping approval code"
+                      />
+                    </label>
+                  ) : null}
+
+                  <label>
+                    Order Notes
+                    <textarea
+                      rows={4}
+                      value={checkoutForm.notes}
+                      onChange={(event) =>
+                        setCheckoutForm((current) => ({ ...current, notes: event.target.value }))
+                      }
+                      placeholder="Special requests, timing, packaging, or anything else we should know."
+                    />
+                  </label>
+                </form>
+
+                {checkoutError ? (
+                  <div className={styles.successMessage}>
+                    <strong>Checkout could not continue.</strong>
+                    <p>{checkoutError}</p>
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            <div className={styles.checkoutWizardFooter}>
+              {checkoutStep === 2 ? (
+                <button
+                  type="button"
+                  className={styles.secondaryCta}
+                  onClick={() => {
+                    setCheckoutError("");
+                    setCheckoutStep(1);
+                  }}
+                >
+                  Back
+                </button>
+              ) : (
+                <span />
+              )}
+
+              {checkoutStep === 2 ? (
+                <button
+                  type="button"
+                  className={styles.submitButton}
+                  disabled={isRedirectingToCheckout || isSendingShippingRequest || isSubmittingPickupOrder}
+                  onClick={handleCheckoutContinue}
+                >
+                  {isSendingShippingRequest
+                    ? "Sending Shipping Request..."
+                    : isSubmittingPickupOrder
+                      ? "Placing Pickup Order..."
+                      : isRedirectingToCheckout
+                        ? "Redirecting to Checkout..."
+                        : checkoutForm.fulfillmentMethod === "shipping-request"
+                          ? "Submit Shipping Request"
+                          : checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup"
+                            ? "Place Order and Pay at Pickup"
+                            : "Continue to Payment"}
+                </button>
+              ) : null}
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import styles from "../app/page.module.css";
 import { products } from "../lib/catalog";
@@ -12,10 +13,25 @@ export function ShopContent() {
   const [cart, setCart] = useState<CartItem[]>(readStoredCart);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState<ShopFilter>("all");
+  const [cartNotice, setCartNotice] = useState<{ message: string } | null>(null);
 
   useEffect(() => {
     saveStoredCart(cart);
   }, [cart]);
+
+  useEffect(() => {
+    if (!cartNotice) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setCartNotice(null);
+    }, 2600);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [cartNotice]);
 
   function addToCart(productId: string) {
     const product = products.find((entry) => entry.id === productId);
@@ -27,11 +43,13 @@ export function ShopContent() {
       const existingItem = currentCart.find((item) => item.cartKey === product.id);
 
       if (existingItem) {
+        setCartNotice({ message: `${existingItem.quantity + 1} ${product.name} added to your cart.` });
         return currentCart.map((item) =>
           item.cartKey === product.id ? { ...item, quantity: item.quantity + 1 } : item,
         );
       }
 
+      setCartNotice({ message: `1 ${product.name} added to your cart.` });
       return [
         ...currentCart,
         {
@@ -217,6 +235,13 @@ export function ShopContent() {
           </div>
         ) : null}
       </section>
+
+      {cartNotice ? (
+        <div className={styles.cartToast} role="status" aria-live="polite">
+          <strong>{cartNotice.message}</strong>
+          <Link href="/cart">View Cart</Link>
+        </div>
+      ) : null}
     </>
   );
 }

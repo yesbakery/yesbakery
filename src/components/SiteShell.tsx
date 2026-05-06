@@ -54,7 +54,7 @@ export function SiteShell({ children }: PropsWithChildren) {
           <div className={styles.navActions}>
             <button
               type="button"
-              className={styles.menuToggle}
+              className={`${styles.menuToggle} ${isMobileMenuOpen ? styles.menuToggleOpen : ""}`}
               onClick={() => setIsMobileMenuOpen((current) => !current)}
               aria-expanded={isMobileMenuOpen}
               aria-controls="primary-navigation"
