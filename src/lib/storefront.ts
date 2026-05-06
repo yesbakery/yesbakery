@@ -1,10 +1,14 @@
-import { Inclusion, Product } from "./catalog";
+import { Product } from "./catalog";
 
 export type CartItem = Product & {
   cartKey: string;
   quantity: number;
   unitPrice: number;
-  selectedInclusions: Inclusion[];
+  selectedInclusions: Array<{
+    id: string;
+    name: string;
+    image?: string;
+  }>;
 };
 
 export type CheckoutForm = {
@@ -130,19 +134,6 @@ export function clearStoredCheckout() {
   window.localStorage.removeItem(CHECKOUT_FORM_STORAGE_KEY);
   window.dispatchEvent(new Event(CART_UPDATED_EVENT));
   window.dispatchEvent(new Event(CHECKOUT_FORM_UPDATED_EVENT));
-}
-
-export function buildSourdoughCartItem(product: Product, selectedInclusions: Inclusion[]): CartItem {
-  const sortedInclusions = [...selectedInclusions].sort((left, right) => left.name.localeCompare(right.name));
-  const inclusionKey = sortedInclusions.map((inclusion) => inclusion.id).join("-");
-
-  return {
-    ...product,
-    cartKey: inclusionKey ? `${product.id}:${inclusionKey}` : product.id,
-    quantity: 1,
-    unitPrice: product.price,
-    selectedInclusions: sortedInclusions,
-  };
 }
 
 export function getEarliestPickupDate() {

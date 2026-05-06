@@ -63,10 +63,10 @@ export function AboutContent() {
 
           <div className={styles.storyLogoPanel}>
             <Image
-              src="/assets/yesbakery_logo.PNG"
+              src="/assets/new_logo.PNG"
               alt="Yes Bakery & More logo"
-              width={520}
-              height={260}
+              width={858}
+              height={429}
               className={styles.storyLogo}
             />
           </div>

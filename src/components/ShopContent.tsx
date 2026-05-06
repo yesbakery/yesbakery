@@ -1,13 +1,17 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styles from "../app/page.module.css";
 import { products } from "../lib/catalog";
 import { CartItem, currency, readStoredCart, saveStoredCart } from "../lib/storefront";
 
+type ShopFilter = "all" | "sourdough" | "treats" | "jams";
+
 export function ShopContent() {
   const [cart, setCart] = useState<CartItem[]>(readStoredCart);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeFilter, setActiveFilter] = useState<ShopFilter>("all");
 
   useEffect(() => {
     saveStoredCart(cart);
@@ -49,6 +53,34 @@ export function ShopContent() {
     );
   }
 
+  const filteredProducts = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+
+    return products.filter((product) => {
+      const matchesFilter =
+        activeFilter === "all"
+          ? true
+          : activeFilter === "sourdough"
+            ? product.id.startsWith("sourdough")
+            : activeFilter === "jams"
+              ? product.id.includes("jam")
+              : !product.id.startsWith("sourdough") && !product.id.includes("jam");
+
+      if (!matchesFilter) {
+        return false;
+      }
+
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      return (
+        product.name.toLowerCase().includes(normalizedSearch) ||
+        product.description.toLowerCase().includes(normalizedSearch)
+      );
+    });
+  }, [activeFilter, searchTerm]);
+
   return (
     <>
       <section className={styles.hero}>
@@ -79,41 +111,70 @@ export function ShopContent() {
         </div>
       </section>
 
+      <section className={styles.shopToolbarSection}>
+        <div className={styles.shopToolbar}>
+          <label className={styles.shopSearch}>
+            <span className={styles.shopSearchLabel}>Search the shop</span>
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search sourdough, treats, and jams"
+            />
+          </label>
+
+          <div className={styles.shopFilters} aria-label="Shop filters">
+            {[
+              { id: "all", label: "All" },
+              { id: "sourdough", label: "Sourdough" },
+              { id: "treats", label: "Treats" },
+              { id: "jams", label: "Jams" },
+            ].map((filter) => (
+              <button
+                key={filter.id}
+                type="button"
+                className={`${styles.filterPill} ${activeFilter === filter.id ? styles.filterPillActive : ""}`}
+                onClick={() => setActiveFilter(filter.id as ShopFilter)}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <p className={styles.kicker}>Menu</p>
           <h2>Freshly baked favorites with clear pricing</h2>
           <p>
-            Plain sourdough and each inclusion loaf now appear as their own product. Every sourdough version is
-            the same loaf price.
+            Plain sourdough is {currency.format(10)}, and the specialty sourdough loaves are {currency.format(12)}
+            with their own matching product photos.
           </p>
         </div>
 
-        <div className={styles.grid}>
-          {products.map((product, index) => {
+        <div className={styles.homeFavoritesGrid}>
+          {filteredProducts.map((product, index) => {
             const matchingItems = cart.filter((item) => item.id === product.id);
             const productCount = matchingItems.reduce((total, item) => total + item.quantity, 0);
 
             return (
-              <article key={product.id} className={styles.card} style={{ animationDelay: `${index * 120}ms` }}>
-                <div className={styles.imageWrap}>
+              <article
+                key={product.id}
+                className={`${styles.card} ${styles.homeFavoriteCard}`}
+                style={{ animationDelay: `${index * 120}ms` }}
+              >
+                <div className={`${styles.homeFavoriteImageWrap} ${styles.shopFavoriteImageWrap}`}>
                   <Image src={product.image} alt={product.name} fill sizes="(max-width: 900px) 100vw, 50vw" />
-                  {product.overlayImage ? (
-                    <div className={styles.productOverlayImage}>
-                      <Image
-                        src={product.overlayImage}
-                        alt={`${product.name} inclusion`}
-                        fill
-                        sizes="96px"
-                      />
-                    </div>
-                  ) : null}
                 </div>
-                <div className={styles.cardBody}>
+                <div className={styles.homeFavoriteBody}>
                   <div className={styles.cardHeading}>
                     <h3>{product.name}</h3>
                     <span className={styles.price}>{currency.format(product.price)}</span>
                   </div>
+                  {product.id === "cinnamon-rolls" || product.id === "empanada" ? (
+                    <div className={styles.eachPricePill}>Per Each</div>
+                  ) : null}
                   <p>{product.description}</p>
 
                   <div className={styles.cardActions}>
@@ -148,6 +209,13 @@ export function ShopContent() {
             );
           })}
         </div>
+
+        {filteredProducts.length === 0 ? (
+          <div className={styles.emptyShopState}>
+            <strong>No matches found.</strong>
+            <p>Try a different search or switch to another filter.</p>
+          </div>
+        ) : null}
       </section>
     </>
   );

@@ -43,10 +43,10 @@ export function SiteShell({ children }: PropsWithChildren) {
         <header className={styles.navbar}>
           <Link className={styles.brand} href="/" aria-label="Yes Bakery & More home">
             <Image
-              src="/assets/yesbakery_logo.PNG"
+              src="/assets/new_logo.PNG"
               alt="Yes Bakery & More logo"
-              width={220}
-              height={110}
+              width={363}
+              height={182}
               className={styles.brandLogo}
             />
           </Link>
