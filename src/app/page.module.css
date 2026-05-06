@@ -12,6 +12,25 @@
   margin: 0 auto;
 }
 
+.embeddedHomePage {
+  width: 100%;
+  min-height: 100vh;
+  background: #ede0c8;
+}
+
+.homeExperienceFrame {
+  display: block;
+  width: 100%;
+  min-height: 100vh;
+  border: 0;
+}
+
+.reactHomeExperience {
+  width: 100%;
+  min-height: 100vh;
+  background: #ede0c8;
+}
+
 .navbar,
 .heroCopy,
 .heroFeature,
