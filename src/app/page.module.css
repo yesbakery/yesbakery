@@ -68,20 +68,45 @@
   height: 48px;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 5px;
   padding: 0;
   border: 0;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.76);
+  box-shadow: inset 0 0 0 1px rgba(107, 68, 45, 0.08);
   cursor: pointer;
+  transition: background-color 180ms ease, box-shadow 180ms ease;
 }
 
 .menuToggle span {
   display: block;
-  width: 18px;
-  height: 2px;
+  width: 20px;
+  height: 2.5px;
   border-radius: 999px;
   background: #6a4532;
+  transition: transform 180ms ease, opacity 180ms ease, width 180ms ease;
+}
+
+.menuToggle span:nth-child(2) {
+  width: 16px;
+}
+
+.menuToggleOpen {
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: inset 0 0 0 1px rgba(107, 68, 45, 0.12);
+}
+
+.menuToggleOpen span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.menuToggleOpen span:nth-child(2) {
+  width: 20px;
+  opacity: 0;
+}
+
+.menuToggleOpen span:nth-child(3) {
+  transform: translateY(-8px) rotate(-45deg);
 }
 
 .navLinks a,
@@ -756,6 +781,32 @@
   gap: 12px;
 }
 
+.checkoutLauncherCard {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  padding: 32px;
+  border-radius: 34px;
+  border: 1px solid rgba(107, 68, 45, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 250, 246, 0.96), rgba(253, 236, 226, 0.92)),
+    linear-gradient(120deg, rgba(214, 162, 122, 0.12), transparent);
+  box-shadow: 0 20px 60px rgba(113, 77, 54, 0.1);
+}
+
+.checkoutLauncherCard h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  line-height: 0.98;
+  color: #5f311c;
+}
+
+.checkoutLauncherCard p {
+  color: #6f5143;
+  line-height: 1.7;
+}
+
 .totals {
   display: grid;
   gap: 12px;
@@ -868,7 +919,28 @@
   box-shadow: 0 28px 80px rgba(59, 33, 21, 0.22);
 }
 
+.checkoutWizardCard {
+  position: relative;
+  isolation: isolate;
+}
+
+.checkoutWizardLogo {
+  position: absolute;
+  inset: 92px 30px auto auto;
+  width: min(24vw, 210px);
+  aspect-ratio: 1.8 / 1;
+  opacity: 0.045;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.checkoutWizardLogo :global(img) {
+  object-fit: contain;
+}
+
 .modalHeader {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -899,6 +971,151 @@
   color: #fff8f4;
   background: linear-gradient(135deg, #c47a45, #a6542d);
   cursor: pointer;
+}
+
+.checkoutSteps {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.checkoutStepPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(107, 68, 45, 0.12);
+  background: rgba(255, 255, 255, 0.7);
+  color: #7a5b4a;
+  font-weight: 700;
+}
+
+.checkoutStepPillActive {
+  color: #fff8f4;
+  background: linear-gradient(135deg, #c47a45, #a6542d);
+  box-shadow: 0 12px 24px rgba(164, 84, 45, 0.18);
+}
+
+.checkoutOptionGrid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.checkoutOptionCard {
+  display: grid;
+  gap: 10px;
+  min-height: 184px;
+  padding: 22px;
+  border: 1px solid rgba(107, 68, 45, 0.12);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.76);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.checkoutOptionCard strong {
+  color: #5f311c;
+  font-size: 1.1rem;
+}
+
+.checkoutOptionCard p {
+  color: #6f5143;
+  line-height: 1.65;
+}
+
+.checkoutWizardFormWrap {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 18px;
+}
+
+.checkoutSummaryMini {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(107, 68, 45, 0.1);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.checkoutSummaryMini strong {
+  color: #64351e;
+}
+
+.checkoutSummaryMini p {
+  color: #6f5143;
+}
+
+.checkoutSummaryMini span {
+  margin-left: auto;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: #7a4125;
+  background: #f8dfcf;
+  font-weight: 800;
+}
+
+.checkoutWizardFooter {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(107, 68, 45, 0.12);
+}
+
+.checkoutWizardFooter .secondaryCta,
+.checkoutWizardFooter .submitButton {
+  min-width: 220px;
+}
+
+.cartToast {
+  position: fixed;
+  top: max(20px, env(safe-area-inset-top, 0px) + 18px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(480px, calc(100vw - 32px));
+  padding: 14px 16px;
+  border-radius: 22px;
+  border: 1px solid rgba(107, 68, 45, 0.12);
+  background: rgba(78, 44, 28, 0.94);
+  color: #fff6ef;
+  box-shadow: 0 22px 44px rgba(59, 33, 21, 0.24);
+  animation: toastIn 220ms ease-out;
+}
+
+.cartToast strong {
+  flex: 1;
+  line-height: 1.45;
+}
+
+.cartToast a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  padding: 10px 14px;
+  border-radius: 999px;
+  color: #5f311c;
+  background: #fff4eb;
+  font-weight: 800;
 }
 
 .inclusionGrid {
@@ -1033,6 +1250,18 @@
   }
 }
 
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
 @media (hover: hover) and (pointer: fine) {
   .primaryCta:hover,
   .secondaryCta:hover,
@@ -1061,6 +1290,12 @@
 
   .inclusionCard:hover {
     transform: translateY(-4px);
+    box-shadow: 0 22px 40px rgba(113, 77, 54, 0.14);
+  }
+
+  .checkoutOptionCard:hover {
+    transform: translateY(-4px);
+    border-color: rgba(166, 84, 45, 0.28);
     box-shadow: 0 22px 40px rgba(113, 77, 54, 0.14);
   }
 }
@@ -1119,6 +1354,10 @@
     grid-template-columns: 1fr;
   }
 
+  .checkoutOptionGrid {
+    grid-template-columns: 1fr;
+  }
+
   .reviewGrid {
     grid-template-columns: 1fr;
   }
@@ -1132,6 +1371,15 @@
     width: 100%;
     flex-wrap: wrap;
     justify-content: space-between;
+  }
+
+  .checkoutWizardFooter {
+    flex-wrap: wrap;
+  }
+
+  .checkoutWizardFooter .secondaryCta,
+  .checkoutWizardFooter .submitButton {
+    width: 100%;
   }
 }
 
@@ -1254,8 +1502,41 @@
   .heroCopy,
   .checkoutSummary,
   .checkoutCard,
+  .checkoutLauncherCard,
   .storyCard {
     padding: 24px 18px;
+  }
+
+  .checkoutWizardCard {
+    padding: 22px 18px;
+  }
+
+  .checkoutWizardLogo {
+    display: none;
+  }
+
+  .checkoutSummaryMini {
+    display: grid;
+    gap: 8px;
+  }
+
+  .checkoutSummaryMini span {
+    margin-left: 0;
+    width: fit-content;
+  }
+
+  .cartToast {
+    left: 12px;
+    right: 12px;
+    top: max(12px, env(safe-area-inset-top, 0px) + 10px);
+    width: auto;
+    transform: none;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cartToast a {
+    width: 100%;
   }
 
   .heroFeature {

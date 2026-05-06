@@ -403,9 +403,11 @@ export function CartContent() {
             aria-labelledby="checkout-wizard-title"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className={styles.checkoutWizardLogo}>
-              <Image src="/assets/new_logo.PNG" alt="" fill sizes="300px" />
-            </div>
+            {checkoutStep === 2 ? (
+              <div className={styles.checkoutWizardLogo}>
+                <Image src="/assets/new_logo.PNG" alt="" fill sizes="220px" />
+              </div>
+            ) : null}
 
             <div className={styles.modalHeader}>
               <div>

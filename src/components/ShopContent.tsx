@@ -13,7 +13,7 @@ export function ShopContent() {
   const [cart, setCart] = useState<CartItem[]>(readStoredCart);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState<ShopFilter>("all");
-  const [cartNotice, setCartNotice] = useState<{ message: string } | null>(null);
+  const [cartNotice, setCartNotice] = useState<{ id: number; message: string } | null>(null);
 
   useEffect(() => {
     saveStoredCart(cart);
@@ -43,13 +43,19 @@ export function ShopContent() {
       const existingItem = currentCart.find((item) => item.cartKey === product.id);
 
       if (existingItem) {
-        setCartNotice({ message: `${existingItem.quantity + 1} ${product.name} added to your cart.` });
+        setCartNotice({
+          id: Date.now(),
+          message: `${product.name} added to your cart. Quantity: ${existingItem.quantity + 1}.`,
+        });
         return currentCart.map((item) =>
           item.cartKey === product.id ? { ...item, quantity: item.quantity + 1 } : item,
         );
       }
 
-      setCartNotice({ message: `1 ${product.name} added to your cart.` });
+      setCartNotice({
+        id: Date.now(),
+        message: `${product.name} added to your cart. Quantity: 1.`,
+      });
       return [
         ...currentCart,
         {
@@ -237,7 +243,7 @@ export function ShopContent() {
       </section>
 
       {cartNotice ? (
-        <div className={styles.cartToast} role="status" aria-live="polite">
+        <div key={cartNotice.id} className={styles.cartToast} role="status" aria-live="polite">
           <strong>{cartNotice.message}</strong>
           <Link href="/cart">View Cart</Link>
         </div>
