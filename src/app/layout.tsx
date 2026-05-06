@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Manrope } from "next/font/google";
 import "./globals.css";
+import { PwaRegister } from "../components/PwaRegister";
 
 const displayFont = Cormorant_Garamond({
   variable: "--font-display",
@@ -17,6 +18,20 @@ const bodyFont = Manrope({
 export const metadata: Metadata = {
   title: "Yes Bakery & More",
   description: "Fresh baked breads, pastries, and Salvadoran favorites from Yes Bakery & More.",
+  applicationName: "Yes Bakery & More",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/favicon.png", sizes: "64x64", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#a6542d",
 };
 
 export default function RootLayout({
@@ -26,7 +41,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${displayFont.variable} ${bodyFont.variable}`}>
-      <body>{children}</body>
+      <body>
+        <PwaRegister />
+        {children}
+      </body>
     </html>
   );
 }
