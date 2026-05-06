@@ -96,7 +96,7 @@ export function ShopContent() {
         <div className={styles.heroFeature}>
           <div className={styles.heroImageWrap}>
             <Image
-              src="/assets/products/sour_dough.PNG"
+              src="/assets/products/sourdough/sour_dough-plain.PNG"
               alt="Fresh sourdough bread from Yes Bakery & More"
               fill
               priority

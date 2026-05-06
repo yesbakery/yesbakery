@@ -1151,9 +1151,11 @@
   }
 
   .slideBadge {
+    top: 18px;
     right: 18px;
-    bottom: 58px;
+    bottom: auto;
     padding: 14px 16px;
+    max-width: min(58vw, 240px);
   }
 
   .slideBadge strong {
