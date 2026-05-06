@@ -23,6 +23,7 @@ export function CartContent() {
   const [checkoutError, setCheckoutError] = useState("");
   const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false);
   const [isSendingShippingRequest, setIsSendingShippingRequest] = useState(false);
+  const [isSubmittingPickupOrder, setIsSubmittingPickupOrder] = useState(false);
   const [isCheckoutReviewOpen, setIsCheckoutReviewOpen] = useState(false);
 
   useEffect(() => {
@@ -192,6 +193,38 @@ export function CartContent() {
     }
   }
 
+  async function submitPickupOrder() {
+    setIsCheckoutReviewOpen(false);
+    setIsSubmittingPickupOrder(true);
+
+    try {
+      const response = await fetch("/api/pickup-order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          cart,
+          checkoutForm,
+        }),
+      });
+
+      const payload = (await response.json()) as { ok?: boolean; error?: string; orderId?: string };
+
+      if (!response.ok || !payload.ok || !payload.orderId) {
+        throw new Error(payload.error || "We couldn't place your pickup order right now.");
+      }
+
+      clearStoredCheckout();
+      setCart([]);
+      setCheckoutForm(initialCheckoutForm);
+      window.location.href = `/checkout/pickup-success?order_id=${encodeURIComponent(payload.orderId)}`;
+    } catch (error) {
+      setCheckoutError(error instanceof Error ? error.message : "We couldn't place your pickup order.");
+      setIsSubmittingPickupOrder(false);
+    }
+  }
+
   return (
     <>
       <section className={styles.checkoutSection}>
@@ -327,6 +360,8 @@ export function CartContent() {
                     setCheckoutForm((current) => ({
                       ...current,
                       fulfillmentMethod: event.target.value as CheckoutForm["fulfillmentMethod"],
+                      paymentMethod:
+                        event.target.value === "pickup" ? current.paymentMethod : "stripe",
                     }))
                   }
                 >
@@ -335,6 +370,24 @@ export function CartContent() {
                   <option value="shipping-code">I have a Shipping Approval Code</option>
                 </select>
               </label>
+
+              {checkoutForm.fulfillmentMethod === "pickup" ? (
+                <label>
+                  Payment Option
+                  <select
+                    value={checkoutForm.paymentMethod}
+                    onChange={(event) =>
+                      setCheckoutForm((current) => ({
+                        ...current,
+                        paymentMethod: event.target.value as CheckoutForm["paymentMethod"],
+                      }))
+                    }
+                  >
+                    <option value="stripe">Pay Online Now</option>
+                    <option value="pickup">Order and Pay at Pickup</option>
+                  </select>
+                </label>
+              ) : null}
 
               {checkoutForm.fulfillmentMethod === "shipping-request" ? (
                 <>
@@ -390,20 +443,24 @@ export function CartContent() {
                 />
               </label>
 
-              <button
-                type="submit"
-                className={styles.submitButton}
-                disabled={cart.length === 0 || isRedirectingToCheckout || isSendingShippingRequest}
-              >
-                {isSendingShippingRequest
-                  ? "Sending Shipping Request..."
-                  : isRedirectingToCheckout
-                    ? "Redirecting to Stripe..."
-                    : checkoutForm.fulfillmentMethod === "shipping-request"
-                      ? "Request Shipping Approval"
-                      : "Proceed to Checkout"}
-              </button>
-            </form>
+                <button
+                  type="submit"
+                  className={styles.submitButton}
+                  disabled={cart.length === 0 || isRedirectingToCheckout || isSendingShippingRequest || isSubmittingPickupOrder}
+                >
+                  {isSendingShippingRequest
+                    ? "Sending Shipping Request..."
+                    : isSubmittingPickupOrder
+                      ? "Placing Pickup Order..."
+                    : isRedirectingToCheckout
+                      ? "Redirecting to Stripe..."
+                      : checkoutForm.fulfillmentMethod === "shipping-request"
+                        ? "Request Shipping Approval"
+                        : checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup"
+                          ? "Review Pickup Order"
+                          : "Proceed to Checkout"}
+                </button>
+              </form>
 
             <p className={styles.paymentNote}>
               Orders must be placed at least 48 hours in advance. Standard orders are prepared for pickup in
@@ -480,12 +537,24 @@ export function CartContent() {
                     ? checkoutForm.shippingApprovalCode.trim()
                       ? "Shipping approval code entered. If the code is valid, you can continue to payment."
                       : "A shipping approval code is required before payment."
+                    : checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup"
+                      ? "This order will be reserved now and paid for at pickup."
                     : "Pickup instructions will be sent by email after payment."}
                 </p>
               </div>
 
-              <button type="button" className={styles.submitButton} onClick={continueToStripeCheckout}>
-                Proceed to Checkout
+              <button
+                type="button"
+                className={styles.submitButton}
+                onClick={
+                  checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup"
+                    ? submitPickupOrder
+                    : continueToStripeCheckout
+                }
+              >
+                {checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup"
+                  ? "Place Order and Pay at Pickup"
+                  : "Proceed to Checkout"}
               </button>
             </div>
           </div>

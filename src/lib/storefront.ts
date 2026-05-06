@@ -17,6 +17,7 @@ export type CheckoutForm = {
   phone: string;
   pickupDate: string;
   fulfillmentMethod: "pickup" | "shipping-request" | "shipping-code";
+  paymentMethod: "stripe" | "pickup";
   shippingAddress: string;
   shippingRequest: string;
   shippingApprovalCode: string;
@@ -41,6 +42,7 @@ export const initialCheckoutForm: CheckoutForm = {
   phone: "",
   pickupDate: "",
   fulfillmentMethod: "pickup",
+  paymentMethod: "stripe",
   shippingAddress: "",
   shippingRequest: "",
   shippingApprovalCode: "",
