@@ -42,7 +42,7 @@ export const initialCheckoutForm: CheckoutForm = {
   phone: "",
   pickupDate: "",
   fulfillmentMethod: "pickup",
-  paymentMethod: "stripe",
+  paymentMethod: "pickup",
   shippingAddress: "",
   shippingRequest: "",
   shippingApprovalCode: "",

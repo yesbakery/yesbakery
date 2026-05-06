@@ -117,16 +117,8 @@ export function CartContent() {
     setCheckoutStep(1);
   }
 
-  function selectCheckoutType(type: "pickup-online" | "pickup-later" | "shipping-request" | "shipping-code") {
+  function selectCheckoutType(type: "pickup-later" | "shipping-request" | "shipping-code") {
     setCheckoutError("");
-
-    if (type === "pickup-online") {
-      setCheckoutForm((current) => ({
-        ...current,
-        fulfillmentMethod: "pickup",
-        paymentMethod: "stripe",
-      }));
-    }
 
     if (type === "pickup-later") {
       setCheckoutForm((current) => ({
@@ -379,7 +371,7 @@ export function CartContent() {
             <p className={styles.kicker}>Checkout</p>
             <h2>Ready to place the order?</h2>
             <p>
-              Choose from online payment, pay-at-pickup, or shipping arrangements in a step-by-step checkout flow.
+              Choose between placing a Union City pickup order or requesting a shipping arrangement in a step-by-step checkout flow.
             </p>
             <button type="button" className={styles.submitButton} disabled={cart.length === 0} onClick={openCheckout}>
               Checkout
@@ -444,18 +436,9 @@ export function CartContent() {
                 <button
                   type="button"
                   className={styles.checkoutOptionCard}
-                  onClick={() => selectCheckoutType("pickup-online")}
-                >
-                  <strong>Pay online, pick up in Union City</strong>
-                  <p>Pay now online and receive pickup details by email after checkout.</p>
-                </button>
-
-                <button
-                  type="button"
-                  className={styles.checkoutOptionCard}
                   onClick={() => selectCheckoutType("pickup-later")}
                 >
-                  <strong>Order online, pay at pickup in Union City</strong>
+                  <strong>Place order, pay and pick up at Union City</strong>
                   <p>If this is selected, someone will call you to confirm the order before pickup.</p>
                 </button>
 
@@ -464,7 +447,7 @@ export function CartContent() {
                   className={styles.checkoutOptionCard}
                   onClick={() => selectCheckoutType("shipping-request")}
                 >
-                  <strong>Request shipping</strong>
+                  <strong>Request shipping arrangement</strong>
                   <p>Requires approval. Extra lead time is necessary for this type of request, so please plan accordingly.</p>
                 </button>
 
