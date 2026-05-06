@@ -153,8 +153,7 @@ export function clearStoredCheckout() {
 }
 
 export function canPlacePickupOrder() {
-  const day = startOfToday().getDay();
-  return day >= 1 && day <= 4;
+  return true;
 }
 
 export function getEarliestShippingDate() {
@@ -164,13 +163,13 @@ export function getEarliestShippingDate() {
 }
 
 export function getEarliestPickupDate() {
-  if (!canPlacePickupOrder()) {
-    return "";
+  const date = startOfToday();
+  date.setDate(date.getDate() + 2);
+
+  while (![0, 6].includes(date.getDay())) {
+    date.setDate(date.getDate() + 1);
   }
 
-  const date = startOfToday();
-  const daysUntilSaturday = 6 - date.getDay();
-  date.setDate(date.getDate() + daysUntilSaturday);
   return toLocalDateString(date);
 }
 
@@ -185,10 +184,6 @@ export function isPickupDateValid(value: string, fulfillmentMethod: CheckoutForm
 
   if (fulfillmentMethod === "shipping-request" || fulfillmentMethod === "shipping-code") {
     return value >= getEarliestShippingDate();
-  }
-
-  if (!canPlacePickupOrder()) {
-    return false;
   }
 
   const earliestPickupDate = getEarliestPickupDate();

@@ -136,22 +136,49 @@ export default function ShippingRequestsBackendPage() {
             Review shipping arrangement requests, approve the ones you want to fulfill, and send the customer
             their approval code with a preloaded cart link.
           </p>
-          <button
-            type="button"
-            onClick={logout}
-            style={{
-              marginTop: "18px",
-              padding: "11px 16px",
-              borderRadius: "999px",
-              border: 0,
-              background: "rgba(255, 243, 236, 0.9)",
-              color: "#64351e",
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-          >
-            Sign Out
-          </button>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginTop: "18px" }}>
+            <a
+              href="/backend/orders"
+              style={{
+                padding: "11px 16px",
+                borderRadius: "999px",
+                textDecoration: "none",
+                background: "rgba(255, 243, 236, 0.9)",
+                color: "#64351e",
+                fontWeight: 700,
+              }}
+            >
+              Orders
+            </a>
+            <a
+              href="/backend/shipping-requests"
+              style={{
+                padding: "11px 16px",
+                borderRadius: "999px",
+                textDecoration: "none",
+                background: "linear-gradient(135deg, #c47a45, #a6542d)",
+                color: "#fff8f4",
+                fontWeight: 700,
+              }}
+            >
+              Shipping Requests
+            </a>
+            <button
+              type="button"
+              onClick={logout}
+              style={{
+                padding: "11px 16px",
+                borderRadius: "999px",
+                border: 0,
+                background: "rgba(255, 243, 236, 0.9)",
+                color: "#64351e",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              Sign Out
+            </button>
+          </div>
         </header>
 
         {actionMessage ? (

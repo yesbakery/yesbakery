@@ -27,7 +27,7 @@ export default function BackendLoginPage() {
         throw new Error(payload.error || "Login failed.");
       }
 
-      window.location.href = "/backend/shipping-requests";
+      window.location.href = "/backend/orders";
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "Login failed.");
     } finally {

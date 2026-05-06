@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import styles from "../app/page.module.css";
 import {
-  canPlacePickupOrder,
   CartItem,
   CheckoutForm,
   clearStoredCheckout,
@@ -90,7 +89,6 @@ export function CartContent() {
   const needsShippingDetails =
     checkoutForm.fulfillmentMethod === "shipping-request" || checkoutForm.fulfillmentMethod === "shipping-code";
   const hasApprovedShippingCode = checkoutForm.shippingApprovalCode.trim().length > 0;
-  const pickupOrderingOpen = canPlacePickupOrder();
   const pickupDateMin = needsShippingDetails ? getEarliestShippingDate() : getEarliestPickupDate();
   const pickupDateMax = needsShippingDetails ? undefined : getLatestPickupDate();
 
@@ -127,11 +125,6 @@ export function CartContent() {
     setCheckoutError("");
 
     if (type === "pickup-later") {
-      if (!pickupOrderingOpen) {
-        setCheckoutError("Pickup orders are accepted Monday through Thursday for the upcoming Saturday and Sunday.");
-        return;
-      }
-
       setCheckoutForm((current) => ({
         ...current,
         fulfillmentMethod: "pickup",
@@ -165,11 +158,7 @@ export function CartContent() {
 
     if (!isPickupDateValid(checkoutForm.pickupDate, checkoutForm.fulfillmentMethod)) {
       if (checkoutForm.fulfillmentMethod === "pickup") {
-        if (!pickupOrderingOpen) {
-          return "Pickup orders are accepted only Monday through Thursday for the upcoming Saturday and Sunday.";
-        }
-
-        return "Please choose the upcoming Saturday or Sunday for pickup.";
+        return "Please choose a Saturday or Sunday pickup date that is at least 48 hours away.";
       }
 
       return "Orders must be placed at least 48 hours in advance.";
@@ -455,15 +444,10 @@ export function CartContent() {
                 <button
                   type="button"
                   className={styles.checkoutOptionCard}
-                  disabled={!pickupOrderingOpen}
                   onClick={() => selectCheckoutType("pickup-later")}
                 >
                   <strong>Place order, pay and pick up at Union City</strong>
-                  <p>
-                    {pickupOrderingOpen
-                      ? "Available Monday through Thursday for the upcoming Saturday and Sunday pickups."
-                      : "Pickup ordering opens Monday through Thursday for the upcoming Saturday and Sunday pickups."}
-                  </p>
+                  <p>Pickup dates are Saturdays and Sundays only, and each order must be placed at least 48 hours in advance.</p>
                 </button>
 
                 <button
@@ -545,7 +529,7 @@ export function CartContent() {
                     />
                     {checkoutForm.fulfillmentMethod === "pickup" ? (
                       <span className={styles.fieldHint}>
-                        Pickup orders are accepted Monday through Thursday, and pickup dates must be on a future Saturday or Sunday.
+                        Pickup dates must be on a future Saturday or Sunday and at least 48 hours away.
                       </span>
                     ) : (
                       <span className={styles.fieldHint}>Please choose a date at least 48 hours away.</span>

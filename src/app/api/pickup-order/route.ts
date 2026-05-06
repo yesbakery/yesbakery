@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { products } from "../../../lib/catalog";
+import { recordPickupOrder } from "../../../lib/pickup-orders";
 
 type PickupOrderPayload = {
   cart?: Array<{
@@ -103,6 +104,18 @@ export async function POST(request: NextRequest) {
   const resend = new Resend(resendApiKey);
 
   try {
+    await recordPickupOrder({
+      orderId,
+      fullName,
+      email,
+      phone,
+      pickupDate,
+      orderSummary,
+      notes,
+      totalDue,
+      createdAt: new Date().toISOString(),
+    });
+
     await resend.emails.send({
       from: resendFromEmail,
       to: "yesbakery@gmail.com",

@@ -1,7 +1,7 @@
 export const ADMIN_SESSION_COOKIE = "yesbakery-admin-session";
 
 export function getDashboardPassword() {
-  return process.env.BACKEND_DASHBOARD_PASSWORD?.trim() || "";
+  return process.env.BACKEND_DASHBOARD_PASSWORD?.trim() || "1970";
 }
 
 function getSessionSecret() {

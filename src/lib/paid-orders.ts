@@ -27,6 +27,10 @@ async function readPaidOrders() {
   }
 }
 
+export async function listPaidOrders() {
+  return readPaidOrders();
+}
+
 export async function recordPaidOrder(order: RecordedPaidOrder) {
   const existingOrders = await readPaidOrders();
 
