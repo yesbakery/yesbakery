@@ -234,6 +234,98 @@
     color: #8a6a47;
   }
   #loader.hidden { opacity: 0; pointer-events: none; }
+
+  @media (max-width: 768px) {
+    #canvas-container,
+    #intro,
+    .stage,
+    #outro {
+      height: 100svh;
+    }
+
+    #header {
+      top: 12px;
+      left: 16px;
+    }
+
+    #header img {
+      height: 112px;
+    }
+
+    #intro,
+    #outro {
+      padding: 24px 18px;
+    }
+
+    #intro .logo-large {
+      height: min(42vh, 240px);
+      margin-bottom: 18px;
+    }
+
+    #intro h1 {
+      font-size: 30px;
+      max-width: 12ch;
+    }
+
+    #intro .sub {
+      font-size: 11px;
+      letter-spacing: 4px;
+    }
+
+    .stage {
+      align-items: flex-end;
+      padding: 0 18px 12svh;
+    }
+
+    .stage-content {
+      max-width: none;
+      padding: 24px 22px;
+    }
+
+    .stage h2 {
+      font-size: 28px;
+    }
+
+    .stage p {
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .button-row {
+      gap: 12px;
+    }
+
+    .cta,
+    .cta-secondary {
+      width: 100%;
+      padding: 14px 18px;
+      text-align: center;
+    }
+
+    .scroll-cue {
+      bottom: 20px;
+      font-size: 10px;
+      letter-spacing: 3px;
+    }
+
+    #outro .logo-out {
+      height: min(32vh, 180px);
+      margin-bottom: 18px;
+    }
+
+    #outro h2 {
+      font-size: 40px;
+    }
+
+    #outro p {
+      font-size: 16px;
+      margin-bottom: 24px;
+    }
+
+    #loader img {
+      height: min(34vh, 220px);
+    }
+  }
 </style>
 </head>
 <body>
@@ -324,8 +416,12 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xede0c8);
 scene.fog = new THREE.Fog(0xede0c8, 9, 24);
 
-const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(0, 3.5, 7);
+const isMobile = () => window.innerWidth <= 768;
+const mobileDistanceBoost = () => (isMobile() ? 1.28 : 1);
+const mobileHeightOffset = () => (isMobile() ? 0.22 : 0);
+
+const camera = new THREE.PerspectiveCamera(isMobile() ? 48 : 40, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, isMobile() ? 3.8 : 3.5, isMobile() ? 8.6 : 7);
 camera.lookAt(0, 0.5, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
@@ -1635,6 +1731,7 @@ window.addEventListener('scroll', () => {
 });
 
 window.addEventListener('resize', () => {
+  camera.fov = isMobile() ? 48 : 40;
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -1820,6 +1917,12 @@ function updateScene(p, time) {
     lookY = 0.7;
     focusDist = lerp(4.5, 5, t);
   }
+
+  const distanceBoost = mobileDistanceBoost();
+  camX *= distanceBoost;
+  camZ *= distanceBoost;
+  camY += mobileHeightOffset();
+  focusDist *= distanceBoost;
 
   camera.position.set(camX, camY, camZ);
   camera.lookAt(0, lookY, 0);
