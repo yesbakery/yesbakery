@@ -76,9 +76,21 @@ export function SiteShell({ children }: PropsWithChildren) {
               aria-controls="primary-navigation"
               aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
             >
-              <span />
-              <span />
-              <span />
+              <svg viewBox="0 0 24 24" aria-hidden="true" className={styles.menuToggleGrid}>
+                <circle cx="7" cy="7" r="2.1" />
+                <circle cx="17" cy="7" r="2.1" />
+                <circle cx="7" cy="17" r="2.1" />
+                <circle cx="17" cy="17" r="2.1" />
+              </svg>
+              <svg viewBox="0 0 24 24" aria-hidden="true" className={styles.menuToggleCloseIcon}>
+                <path
+                  d="M7 7l10 10M17 7L7 17"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                />
+              </svg>
             </button>
 
             <nav

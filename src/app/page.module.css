@@ -83,49 +83,52 @@
 
 .menuToggle {
   display: none;
+  position: relative;
   width: 48px;
   height: 48px;
   align-items: center;
   justify-content: center;
-  gap: 5px;
   padding: 0;
   border: 0;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.76);
   box-shadow: inset 0 0 0 1px rgba(107, 68, 45, 0.08);
   cursor: pointer;
-  transition: background-color 180ms ease, box-shadow 180ms ease;
+  color: #6a4532;
+  transition: background-color 180ms ease, box-shadow 180ms ease, color 180ms ease;
 }
 
-.menuToggle span {
-  display: block;
-  width: 20px;
-  height: 2.5px;
-  border-radius: 999px;
-  background: #6a4532;
-  transition: transform 180ms ease, opacity 180ms ease, width 180ms ease;
+.menuToggleGrid,
+.menuToggleCloseIcon {
+  width: 22px;
+  height: 22px;
+  transition: opacity 180ms ease, transform 180ms ease;
 }
 
-.menuToggle span:nth-child(2) {
-  width: 16px;
+.menuToggleGrid {
+  fill: currentColor;
 }
 
 .menuToggleOpen {
   background: rgba(255, 255, 255, 0.94);
   box-shadow: inset 0 0 0 1px rgba(107, 68, 45, 0.12);
+  color: #8f5428;
 }
 
-.menuToggleOpen span:nth-child(1) {
-  transform: translateY(7px) rotate(45deg);
-}
-
-.menuToggleOpen span:nth-child(2) {
-  width: 20px;
+.menuToggleCloseIcon {
+  position: absolute;
   opacity: 0;
+  transform: scale(0.85);
 }
 
-.menuToggleOpen span:nth-child(3) {
-  transform: translateY(-8px) rotate(-45deg);
+.menuToggleOpen .menuToggleGrid {
+  opacity: 0;
+  transform: scale(0.85);
+}
+
+.menuToggleOpen .menuToggleCloseIcon {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .navLinks a,
