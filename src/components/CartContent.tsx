@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import styles from "../app/page.module.css";
 import {
@@ -23,6 +23,7 @@ import {
 type CheckoutStep = 1 | 2;
 
 export function CartContent() {
+  const overlayRef = useRef<HTMLDivElement | null>(null);
   const [cart, setCart] = useState<CartItem[]>(readStoredCart);
   const [checkoutForm, setCheckoutForm] = useState<CheckoutForm>(readStoredForm);
   const [checkoutError, setCheckoutError] = useState("");
@@ -39,6 +40,15 @@ export function CartContent() {
   useEffect(() => {
     saveStoredForm(checkoutForm);
   }, [checkoutForm]);
+
+  useEffect(() => {
+    if (!isCheckoutOpen) {
+      return;
+    }
+
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    overlayRef.current?.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [isCheckoutOpen, checkoutStep]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -407,7 +417,7 @@ export function CartContent() {
       </section>
 
       {isCheckoutOpen ? (
-        <div className={styles.modalOverlay} role="presentation" onClick={closeCheckout}>
+        <div ref={overlayRef} className={styles.modalOverlay} role="presentation" onClick={closeCheckout}>
           <div
             className={`${styles.modalCard} ${styles.checkoutWizardCard}`}
             role="dialog"
