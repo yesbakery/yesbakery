@@ -4,11 +4,14 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import styles from "../app/page.module.css";
 import {
+  canPlacePickupOrder,
   CartItem,
   CheckoutForm,
   clearStoredCheckout,
   currency,
   getEarliestPickupDate,
+  getEarliestShippingDate,
+  getLatestPickupDate,
   initialCheckoutForm,
   isPickupDateValid,
   normalizeCartItem,
@@ -87,6 +90,9 @@ export function CartContent() {
   const needsShippingDetails =
     checkoutForm.fulfillmentMethod === "shipping-request" || checkoutForm.fulfillmentMethod === "shipping-code";
   const hasApprovedShippingCode = checkoutForm.shippingApprovalCode.trim().length > 0;
+  const pickupOrderingOpen = canPlacePickupOrder();
+  const pickupDateMin = needsShippingDetails ? getEarliestShippingDate() : getEarliestPickupDate();
+  const pickupDateMax = needsShippingDetails ? undefined : getLatestPickupDate();
 
   function updateQuantity(cartKey: string, nextQuantity: number) {
     setCheckoutError("");
@@ -121,6 +127,11 @@ export function CartContent() {
     setCheckoutError("");
 
     if (type === "pickup-later") {
+      if (!pickupOrderingOpen) {
+        setCheckoutError("Pickup orders are accepted Monday through Thursday for the upcoming Saturday and Sunday.");
+        return;
+      }
+
       setCheckoutForm((current) => ({
         ...current,
         fulfillmentMethod: "pickup",
@@ -152,7 +163,15 @@ export function CartContent() {
       return "Please complete your name, email, phone, and date before continuing.";
     }
 
-    if (!isPickupDateValid(checkoutForm.pickupDate)) {
+    if (!isPickupDateValid(checkoutForm.pickupDate, checkoutForm.fulfillmentMethod)) {
+      if (checkoutForm.fulfillmentMethod === "pickup") {
+        if (!pickupOrderingOpen) {
+          return "Pickup orders are accepted only Monday through Thursday for the upcoming Saturday and Sunday.";
+        }
+
+        return "Please choose the upcoming Saturday or Sunday for pickup.";
+      }
+
       return "Orders must be placed at least 48 hours in advance.";
     }
 
@@ -436,10 +455,15 @@ export function CartContent() {
                 <button
                   type="button"
                   className={styles.checkoutOptionCard}
+                  disabled={!pickupOrderingOpen}
                   onClick={() => selectCheckoutType("pickup-later")}
                 >
                   <strong>Place order, pay and pick up at Union City</strong>
-                  <p>If this is selected, someone will call you to confirm the order before pickup.</p>
+                  <p>
+                    {pickupOrderingOpen
+                      ? "Available Monday through Thursday for the upcoming Saturday and Sunday pickups."
+                      : "Pickup ordering opens Monday through Thursday for the upcoming Saturday and Sunday pickups."}
+                  </p>
                 </button>
 
                 <button
@@ -512,12 +536,20 @@ export function CartContent() {
                     <input
                       type="date"
                       value={checkoutForm.pickupDate}
-                      min={getEarliestPickupDate()}
+                      min={pickupDateMin}
+                      max={pickupDateMax}
                       onChange={(event) =>
                         setCheckoutForm((current) => ({ ...current, pickupDate: event.target.value }))
                       }
                       required
                     />
+                    {checkoutForm.fulfillmentMethod === "pickup" ? (
+                      <span className={styles.fieldHint}>
+                        Pickup orders are accepted Monday through Thursday for the upcoming Saturday or Sunday only.
+                      </span>
+                    ) : (
+                      <span className={styles.fieldHint}>Please choose a date at least 48 hours away.</span>
+                    )}
                   </label>
 
                   {checkoutForm.fulfillmentMethod === "shipping-request" ? (

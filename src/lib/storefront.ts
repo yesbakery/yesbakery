@@ -61,6 +61,20 @@ export const currency = new Intl.NumberFormat("en-US", {
   currency: "USD",
 });
 
+function toLocalDateString(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function startOfToday() {
+  const date = new Date();
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
 export function normalizeCartItem(item: Partial<CartItem> & Product): CartItem {
   const selectedInclusions = Array.isArray(item.selectedInclusions) ? item.selectedInclusions : [];
   const unitPrice = typeof item.unitPrice === "number" ? item.unitPrice : item.price;
@@ -138,24 +152,61 @@ export function clearStoredCheckout() {
   window.dispatchEvent(new Event(CHECKOUT_FORM_UPDATED_EVENT));
 }
 
-export function getEarliestPickupDate() {
-  const date = new Date();
-  date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() + 2);
-
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
+export function canPlacePickupOrder() {
+  const day = startOfToday().getDay();
+  return day >= 1 && day <= 4;
 }
 
-export function isPickupDateValid(value: string) {
+export function getEarliestShippingDate() {
+  const date = startOfToday();
+  date.setDate(date.getDate() + 2);
+  return toLocalDateString(date);
+}
+
+export function getEarliestPickupDate() {
+  if (!canPlacePickupOrder()) {
+    return "";
+  }
+
+  const date = startOfToday();
+  const daysUntilSaturday = 6 - date.getDay();
+  date.setDate(date.getDate() + daysUntilSaturday);
+  return toLocalDateString(date);
+}
+
+export function getLatestPickupDate() {
+  const earliestPickupDate = getEarliestPickupDate();
+  if (!earliestPickupDate) {
+    return "";
+  }
+
+  const date = new Date(`${earliestPickupDate}T00:00:00`);
+  date.setDate(date.getDate() + 1);
+  return toLocalDateString(date);
+}
+
+export function isPickupDateValid(value: string, fulfillmentMethod: CheckoutForm["fulfillmentMethod"] = "pickup") {
   if (!value) {
     return false;
   }
 
-  return value >= getEarliestPickupDate();
+  if (fulfillmentMethod === "shipping-request" || fulfillmentMethod === "shipping-code") {
+    return value >= getEarliestShippingDate();
+  }
+
+  if (!canPlacePickupOrder()) {
+    return false;
+  }
+
+  const earliestPickupDate = getEarliestPickupDate();
+  const latestPickupDate = getLatestPickupDate();
+
+  if (!earliestPickupDate || !latestPickupDate || value < earliestPickupDate || value > latestPickupDate) {
+    return false;
+  }
+
+  const pickupDay = new Date(`${value}T00:00:00`).getDay();
+  return pickupDay === 6 || pickupDay === 0;
 }
 
 export function formatCartSummary(cart: CartItem[]) {
