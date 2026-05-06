@@ -1115,10 +1115,15 @@
   min-width: 220px;
 }
 
+.codeFieldWrap {
+  display: grid;
+  gap: 10px;
+}
+
 .codeHelpPanel {
   display: grid;
   gap: 4px;
-  margin-left: auto;
+  margin-top: 2px;
   padding: 14px 16px;
   border-radius: 18px;
   background: rgba(255, 245, 237, 0.95);

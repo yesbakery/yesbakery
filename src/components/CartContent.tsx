@@ -591,18 +591,24 @@ export function CartContent() {
                   ) : null}
 
                   {checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup" ? (
-                    <label>
-                      Pickup Code
-                      <input
-                        type="text"
-                        value={checkoutForm.pickupApprovalCode}
-                        onChange={(event) =>
-                          setCheckoutForm((current) => ({ ...current, pickupApprovalCode: event.target.value.toUpperCase() }))
-                        }
-                        placeholder="Enter your YB- pickup code"
-                        required
-                      />
-                    </label>
+                    <div className={styles.codeFieldWrap}>
+                      <label>
+                        Pickup Code
+                        <input
+                          type="text"
+                          value={checkoutForm.pickupApprovalCode}
+                          onChange={(event) =>
+                            setCheckoutForm((current) => ({ ...current, pickupApprovalCode: event.target.value.toUpperCase() }))
+                          }
+                          placeholder="Enter your YB- pickup code"
+                          required
+                        />
+                      </label>
+                      <div className={styles.codeHelpPanel}>
+                        <strong>No code?</strong>
+                        <p>Text 510-329-8786 and request one.</p>
+                      </div>
+                    </div>
                   ) : null}
 
                   <label>
@@ -645,12 +651,6 @@ export function CartContent() {
 
               {checkoutStep === 2 ? (
                 <>
-                  {checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup" ? (
-                    <div className={styles.codeHelpPanel}>
-                      <strong>No code?</strong>
-                      <p>Text 510-329-8786 and request one.</p>
-                    </div>
-                  ) : null}
                   <button
                     type="button"
                     className={styles.submitButton}
