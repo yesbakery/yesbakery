@@ -4,6 +4,7 @@ export type Product = {
   price: number;
   description: string;
   image: string;
+  overlayImage?: string;
 };
 
 export type Inclusion = {
@@ -13,16 +14,57 @@ export type Inclusion = {
 };
 
 export const SOURDOUGH_ID = "sourdough";
-export const INCLUSION_PRICE = 2;
 
-export const products: Product[] = [
+const SOURDOUGH_BASE_IMAGE = "/assets/products/sour_dough.PNG";
+
+export const sourdoughInclusions: Inclusion[] = [
+  {
+    id: "blueberries-brown-sugar",
+    name: "Blueberries in Brown Sugar",
+    image: "/assets/inclusions/Blueberries in Brown Sugar.PNG",
+  },
+  {
+    id: "cheddar-jalapeno",
+    name: "Cheddar & Jalapeno",
+    image: "/assets/inclusions/Cheddar & Jalapeño.PNG",
+  },
+  {
+    id: "cherry-sugar",
+    name: "Cherry & Sugar",
+    image: "/assets/inclusions/Cherry & Sugar.PNG",
+  },
+  {
+    id: "cinnamon-sugar",
+    name: "Cinnamon & Sugar",
+    image: "/assets/inclusions/Cinnamon & Sugar.PNG",
+  },
+  {
+    id: "multigrain",
+    name: "Multigrain",
+    image: "/assets/inclusions/Multigrain.PNG",
+  },
+];
+
+const sourdoughProducts: Product[] = [
   {
     id: SOURDOUGH_ID,
-    name: "Sourdough",
+    name: "Plain Sourdough",
     price: 10,
     description: "Slow-fermented with a crisp crust and airy crumb for everyday tables and cozy breakfasts.",
-    image: "/assets/products/sour_dough.PNG",
+    image: SOURDOUGH_BASE_IMAGE,
   },
+  ...sourdoughInclusions.map((inclusion) => ({
+    id: `sourdough-${inclusion.id}`,
+    name: `Sourdough with ${inclusion.name}`,
+    price: 10,
+    description: `Our signature slow-fermented loaf baked with ${inclusion.name.toLowerCase()} for a bakery favorite with extra character.`,
+    image: SOURDOUGH_BASE_IMAGE,
+    overlayImage: inclusion.image,
+  })),
+];
+
+export const products: Product[] = [
+  ...sourdoughProducts,
   {
     id: "quesadilla-salvadorena",
     name: "Quesadilla Salvadorena",
@@ -51,33 +93,5 @@ export const products: Product[] = [
     description:
       "A 4-ounce jam bursting with pineapple, mango, strawberries, cherry, and raspberry for a bright, fruity spread.",
     image: "/assets/products/jams.PNG",
-  },
-];
-
-export const sourdoughInclusions: Inclusion[] = [
-  {
-    id: "blueberries-brown-sugar",
-    name: "Blueberries in Brown Sugar",
-    image: "/assets/inclusions/Blueberries in Brown Sugar.PNG",
-  },
-  {
-    id: "cheddar-jalapeno",
-    name: "Cheddar & Jalapeno",
-    image: "/assets/inclusions/Cheddar & Jalapeño.PNG",
-  },
-  {
-    id: "cherry-sugar",
-    name: "Cherry & Sugar",
-    image: "/assets/inclusions/Cherry & Sugar.PNG",
-  },
-  {
-    id: "cinnamon-sugar",
-    name: "Cinnamon & Sugar",
-    image: "/assets/inclusions/Cinnamon & Sugar.PNG",
-  },
-  {
-    id: "multigrain",
-    name: "Multigrain",
-    image: "/assets/inclusions/Multigrain.PNG",
   },
 ];

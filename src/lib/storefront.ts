@@ -1,4 +1,4 @@
-import { INCLUSION_PRICE, Inclusion, Product, SOURDOUGH_ID } from "./catalog";
+import { Inclusion, Product } from "./catalog";
 
 export type CartItem = Product & {
   cartKey: string;
@@ -57,22 +57,11 @@ export const currency = new Intl.NumberFormat("en-US", {
 
 export function normalizeCartItem(item: Partial<CartItem> & Product): CartItem {
   const selectedInclusions = Array.isArray(item.selectedInclusions) ? item.selectedInclusions : [];
-  const unitPrice =
-    typeof item.unitPrice === "number"
-      ? item.unitPrice
-      : item.price + selectedInclusions.length * INCLUSION_PRICE;
+  const unitPrice = typeof item.unitPrice === "number" ? item.unitPrice : item.price;
 
   return {
     ...item,
-    cartKey:
-      typeof item.cartKey === "string" && item.cartKey.length > 0
-        ? item.cartKey
-        : item.id === SOURDOUGH_ID && selectedInclusions.length > 0
-          ? `${item.id}:${selectedInclusions
-              .map((inclusion) => inclusion.id)
-              .sort()
-              .join("-")}`
-          : item.id,
+    cartKey: typeof item.cartKey === "string" && item.cartKey.length > 0 ? item.cartKey : item.id,
     quantity: typeof item.quantity === "number" && item.quantity > 0 ? item.quantity : 1,
     unitPrice,
     selectedInclusions,
@@ -151,7 +140,7 @@ export function buildSourdoughCartItem(product: Product, selectedInclusions: Inc
     ...product,
     cartKey: inclusionKey ? `${product.id}:${inclusionKey}` : product.id,
     quantity: 1,
-    unitPrice: product.price + sortedInclusions.length * INCLUSION_PRICE,
+    unitPrice: product.price,
     selectedInclusions: sortedInclusions,
   };
 }

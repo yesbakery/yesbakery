@@ -16,7 +16,6 @@ import {
   saveStoredCart,
   saveStoredForm,
 } from "../lib/storefront";
-import { INCLUSION_PRICE } from "../lib/catalog";
 
 export function CartContent() {
   const [cart, setCart] = useState<CartItem[]>(readStoredCart);
@@ -214,15 +213,6 @@ export function CartContent() {
                     <div className={styles.cartItemInfo}>
                       <strong>{item.name}</strong>
                       <p>{currency.format(item.unitPrice)} each</p>
-                      {item.selectedInclusions.length > 0 ? (
-                        <ul className={styles.inclusionList}>
-                          {item.selectedInclusions.map((inclusion) => (
-                            <li key={inclusion.id}>
-                              {inclusion.name} +{currency.format(INCLUSION_PRICE)}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
                     </div>
 
                     <div className={styles.cartControls}>

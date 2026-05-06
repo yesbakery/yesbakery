@@ -1,47 +1,21 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "../app/page.module.css";
-import { INCLUSION_PRICE, products, SOURDOUGH_ID, sourdoughInclusions } from "../lib/catalog";
-import { buildSourdoughCartItem, CartItem, currency, readStoredCart, saveStoredCart } from "../lib/storefront";
+import { products } from "../lib/catalog";
+import { CartItem, currency, readStoredCart, saveStoredCart } from "../lib/storefront";
 
 export function ShopContent() {
   const [cart, setCart] = useState<CartItem[]>(readStoredCart);
-  const [sourdoughCustomizerOpen, setSourdoughCustomizerOpen] = useState(false);
-  const [selectedInclusionIds, setSelectedInclusionIds] = useState<string[]>([]);
 
   useEffect(() => {
     saveStoredCart(cart);
   }, [cart]);
 
-  const sourdoughCount = cart
-    .filter((item) => item.id === SOURDOUGH_ID)
-    .reduce((total, item) => total + item.quantity, 0);
-
-  const sourdoughInclusionPreview = useMemo(
-    () => sourdoughInclusions.filter((inclusion) => selectedInclusionIds.includes(inclusion.id)),
-    [selectedInclusionIds],
-  );
-
-  function openSourdoughCustomizer() {
-    setSelectedInclusionIds([]);
-    setSourdoughCustomizerOpen(true);
-  }
-
-  function closeSourdoughCustomizer() {
-    setSourdoughCustomizerOpen(false);
-    setSelectedInclusionIds([]);
-  }
-
   function addToCart(productId: string) {
     const product = products.find((entry) => entry.id === productId);
     if (!product) {
-      return;
-    }
-
-    if (product.id === SOURDOUGH_ID) {
-      openSourdoughCustomizer();
       return;
     }
 
@@ -67,40 +41,6 @@ export function ShopContent() {
     });
   }
 
-  function confirmSourdoughSelection() {
-    const sourdough = products.find((product) => product.id === SOURDOUGH_ID);
-    if (!sourdough) {
-      return;
-    }
-
-    const selectedInclusions = sourdoughInclusions.filter((inclusion) =>
-      selectedInclusionIds.includes(inclusion.id),
-    );
-    const nextCartItem = buildSourdoughCartItem(sourdough, selectedInclusions);
-
-    setCart((currentCart) => {
-      const existingItem = currentCart.find((item) => item.cartKey === nextCartItem.cartKey);
-
-      if (existingItem) {
-        return currentCart.map((item) =>
-          item.cartKey === nextCartItem.cartKey ? { ...item, quantity: item.quantity + 1 } : item,
-        );
-      }
-
-      return [...currentCart, nextCartItem];
-    });
-
-    closeSourdoughCustomizer();
-  }
-
-  function toggleInclusion(inclusionId: string) {
-    setSelectedInclusionIds((currentSelection) =>
-      currentSelection.includes(inclusionId)
-        ? currentSelection.filter((id) => id !== inclusionId)
-        : [...currentSelection, inclusionId],
-    );
-  }
-
   function updateQuantity(cartKey: string, nextQuantity: number) {
     setCart((currentCart) =>
       currentCart
@@ -116,8 +56,8 @@ export function ShopContent() {
           <p className={styles.kicker}>Shop</p>
           <h1>Choose the breads and pastries you want, then head to cart when you are ready.</h1>
           <p className={styles.lede}>
-            Build the order at your own pace. Sourdough loaves can be customized with inclusions, and everything
-            you add will stay ready for checkout in the cart page.
+            Each sourdough flavor is now its own loaf, so customers can shop the exact version they want without
+            opening a customization step.
           </p>
         </div>
 
@@ -144,8 +84,8 @@ export function ShopContent() {
           <p className={styles.kicker}>Menu</p>
           <h2>Freshly baked favorites with clear pricing</h2>
           <p>
-            Sourdough includes a customization step so customers can choose inclusions before each loaf is added
-            to the cart. Each selected inclusion adds {currency.format(INCLUSION_PRICE)}.
+            Plain sourdough and each inclusion loaf now appear as their own product. Every sourdough version is
+            the same loaf price.
           </p>
         </div>
 
@@ -158,6 +98,16 @@ export function ShopContent() {
               <article key={product.id} className={styles.card} style={{ animationDelay: `${index * 120}ms` }}>
                 <div className={styles.imageWrap}>
                   <Image src={product.image} alt={product.name} fill sizes="(max-width: 900px) 100vw, 50vw" />
+                  {product.overlayImage ? (
+                    <div className={styles.productOverlayImage}>
+                      <Image
+                        src={product.overlayImage}
+                        alt={`${product.name} inclusion`}
+                        fill
+                        sizes="96px"
+                      />
+                    </div>
+                  ) : null}
                 </div>
                 <div className={styles.cardBody}>
                   <div className={styles.cardHeading}>
@@ -166,21 +116,12 @@ export function ShopContent() {
                   </div>
                   <p>{product.description}</p>
 
-                  {product.id === SOURDOUGH_ID ? (
-                    <div className={styles.sourdoughCallout}>
-                      <strong>Customize your loaf</strong>
-                      <span>Choose from 5 inclusions at {currency.format(INCLUSION_PRICE)} each.</span>
-                    </div>
-                  ) : null}
-
                   <div className={styles.cardActions}>
                     <button type="button" className={styles.addButton} onClick={() => addToCart(product.id)}>
-                      {product.id === SOURDOUGH_ID ? "Customize & Add" : "Add to Cart"}
+                      Add to Cart
                     </button>
 
-                    {product.id === SOURDOUGH_ID ? (
-                      productCount > 0 ? <div className={styles.menuCount}>{sourdoughCount} in cart</div> : null
-                    ) : productCount > 0 ? (
+                    {productCount > 0 ? (
                       <div className={styles.inlineQty}>
                         <button
                           type="button"
@@ -208,76 +149,6 @@ export function ShopContent() {
           })}
         </div>
       </section>
-
-      {sourdoughCustomizerOpen ? (
-        <div className={styles.modalOverlay} role="presentation" onClick={closeSourdoughCustomizer}>
-          <div
-            className={styles.modalCard}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="sourdough-customizer-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className={styles.modalHeader}>
-              <div>
-                <p className={styles.kicker}>Sourdough Inclusions</p>
-                <h2 id="sourdough-customizer-title">Customize your sourdough loaf</h2>
-                <p className={styles.modalIntro}>
-                  Pick any inclusions you want. Each selected option adds {currency.format(INCLUSION_PRICE)}.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                className={styles.modalClose}
-                onClick={closeSourdoughCustomizer}
-                aria-label="Close sourdough customizer"
-              >
-                x
-              </button>
-            </div>
-
-            <div className={styles.inclusionGrid}>
-              {sourdoughInclusions.map((inclusion) => {
-                const isSelected = selectedInclusionIds.includes(inclusion.id);
-
-                return (
-                  <button
-                    key={inclusion.id}
-                    type="button"
-                    className={`${styles.inclusionCard} ${isSelected ? styles.inclusionCardSelected : ""}`}
-                    onClick={() => toggleInclusion(inclusion.id)}
-                  >
-                    <div className={styles.inclusionImageWrap}>
-                      <Image src={inclusion.image} alt={inclusion.name} fill sizes="(max-width: 900px) 100vw, 25vw" />
-                    </div>
-                    <div className={styles.inclusionContent}>
-                      <strong>{inclusion.name}</strong>
-                      <span>+{currency.format(INCLUSION_PRICE)}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className={styles.modalFooter}>
-              <div className={styles.modalSummary}>
-                <strong>Sourdough total</strong>
-                <span>{currency.format(10 + sourdoughInclusionPreview.length * INCLUSION_PRICE)}</span>
-                {sourdoughInclusionPreview.length > 0 ? (
-                  <p>{sourdoughInclusionPreview.map((inclusion) => inclusion.name).join(", ")}</p>
-                ) : (
-                  <p>Plain sourdough selected.</p>
-                )}
-              </div>
-
-              <button type="button" className={styles.submitButton} onClick={confirmSourdoughSelection}>
-                Add Sourdough to Cart
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </>
   );
 }

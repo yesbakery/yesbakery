@@ -334,6 +334,26 @@
   background: #efd2c0;
 }
 
+.productOverlayImage {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 12.5%;
+  min-width: 56px;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(107, 68, 45, 0.1);
+  background: rgba(255, 250, 246, 0.92);
+  box-shadow: 0 10px 24px rgba(113, 77, 54, 0.18);
+}
+
+.productOverlayImage :global(img) {
+  object-fit: contain;
+  object-position: center;
+  padding: 6px;
+}
+
 .cardBody {
   padding: 24px 24px 28px;
 }

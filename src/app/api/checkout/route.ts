@@ -1,18 +1,13 @@
 import Stripe from "stripe";
 import { NextRequest, NextResponse } from "next/server";
-import { INCLUSION_PRICE, products, sourdoughInclusions, SOURDOUGH_ID } from "../../../lib/catalog";
-import {
-  getStripePriceId,
-  getStripeServerClient,
-  getStripeSourdoughInclusionPriceId,
-} from "../../../lib/stripe-config";
+import { products } from "../../../lib/catalog";
+import { getStripePriceId, getStripeServerClient } from "../../../lib/stripe-config";
 import { findApprovedShippingRequestByCode } from "../../../lib/shipping-requests";
 
 type CheckoutPayload = {
   cart?: Array<{
     id?: string;
     quantity?: number;
-    selectedInclusions?: Array<{ id?: string }>;
   }>;
   checkoutForm?: {
     fullName?: string;
@@ -42,17 +37,12 @@ function normalizeCartShape(
   cart: Array<{
     id?: string;
     quantity?: number;
-    selectedInclusions?: Array<{ id?: string }>;
   }>,
 ) {
   return cart
     .map((item) => ({
       id: requireString(item.id),
       quantity: Number(item.quantity) || 0,
-      inclusions: (Array.isArray(item.selectedInclusions) ? item.selectedInclusions : [])
-        .map((inclusion) => requireString(inclusion.id))
-        .filter(Boolean)
-        .sort(),
     }))
     .sort((left, right) => left.id.localeCompare(right.id));
 }
@@ -107,7 +97,6 @@ export async function POST(request: NextRequest) {
           cart.map((item) => ({
             id: item.id,
             quantity: item.quantity,
-            selectedInclusions: item.selectedInclusions,
           })),
         ),
       ) !==
@@ -116,7 +105,6 @@ export async function POST(request: NextRequest) {
             approvedShippingRequest.cart.map((item) => ({
               id: item.id,
               quantity: item.quantity,
-              selectedInclusions: item.selectedInclusions,
             })),
           ),
         ))
@@ -135,29 +123,7 @@ export async function POST(request: NextRequest) {
     if (!product || !Number.isInteger(quantity) || quantity <= 0) {
       return badRequest("One or more items in the cart are invalid.");
     }
-
-    const selectedInclusionIds = Array.isArray(rawItem.selectedInclusions)
-      ? rawItem.selectedInclusions.map((inclusion) => requireString(inclusion.id)).filter(Boolean)
-      : [];
-
-    const uniqueInclusionIds = [...new Set(selectedInclusionIds)];
-
-    if (product.id !== SOURDOUGH_ID && uniqueInclusionIds.length > 0) {
-      return badRequest("Only sourdough can include custom inclusions.");
-    }
-
-    const matchedInclusions = uniqueInclusionIds.map((inclusionId) =>
-      sourdoughInclusions.find((inclusion) => inclusion.id === inclusionId),
-    );
-
-    if (matchedInclusions.some((entry) => !entry)) {
-      return badRequest("One or more sourdough inclusions are invalid.");
-    }
-
-    const inclusionNames = matchedInclusions.map((entry) => entry!.name);
     const stripePriceId = getStripePriceId(product.id);
-    const productName =
-      inclusionNames.length > 0 ? `${product.name} (${inclusionNames.join(", ")})` : product.name;
 
     if (stripePriceId) {
       lineItems.push({
@@ -180,30 +146,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    if (product.id === SOURDOUGH_ID && inclusionNames.length > 0) {
-      const stripeSourdoughInclusionPriceId = getStripeSourdoughInclusionPriceId();
-
-      if (stripeSourdoughInclusionPriceId) {
-        lineItems.push({
-          price: stripeSourdoughInclusionPriceId,
-          quantity: quantity * inclusionNames.length,
-        });
-      } else {
-        lineItems.push({
-          quantity: quantity * inclusionNames.length,
-          price_data: {
-            currency: "usd",
-            unit_amount: INCLUSION_PRICE * 100,
-            product_data: {
-              name: "Sourdough Inclusion Add-on",
-              description: "One sourdough inclusion selection.",
-            },
-          },
-        });
-      }
-    }
-
-    orderSummary.push(`${quantity}x ${productName}`);
+    orderSummary.push(`${quantity}x ${product.name}`);
   }
 
   const origin = request.headers.get("origin");
