@@ -151,6 +151,10 @@
   font-weight: 700;
 }
 
+.mobileCartButton {
+  display: none;
+}
+
 .mobileCartBadge {
   display: none;
 }
@@ -168,6 +172,12 @@
   border-radius: 999px;
   color: #fff8f4;
   background: linear-gradient(135deg, #c47a45, #a6542d);
+}
+
+.mobileCartIcon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
 .hero,
@@ -1526,6 +1536,33 @@
   .mobileCartBadge {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .mobileCartButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 62px;
+    height: 48px;
+    padding: 0 12px;
+    border-radius: 999px;
+    color: #6a4532;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 10px 24px rgba(113, 77, 54, 0.12);
+  }
+
+  .mobileCartButton span {
+    min-width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    color: #fff8f4;
+    background: linear-gradient(135deg, #c47a45, #a6542d);
+    font-size: 0.82rem;
+    font-weight: 800;
   }
 
   .cartBadge {

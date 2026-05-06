@@ -52,6 +52,22 @@ export function SiteShell({ children }: PropsWithChildren) {
           </Link>
 
           <div className={styles.navActions}>
+            <Link className={styles.mobileCartButton} href="/cart" aria-label={`Cart with ${itemCount} items`}>
+              <svg viewBox="0 0 24 24" aria-hidden="true" className={styles.mobileCartIcon}>
+                <path
+                  d="M3 5h2l1.2 6.2A2 2 0 0 0 8.2 13H17a2 2 0 0 0 1.9-1.4L21 7H7.1"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <circle cx="9" cy="19" r="1.7" fill="currentColor" />
+                <circle cx="17" cy="19" r="1.7" fill="currentColor" />
+              </svg>
+              <span>{itemCount}</span>
+            </Link>
+
             <button
               type="button"
               className={`${styles.menuToggle} ${isMobileMenuOpen ? styles.menuToggleOpen : ""}`}
