@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import Script from "next/script";
 
+import { ThreeHomeExperience } from "../components/ThreeHomeExperience";
 import styles from "./page.module.css";
 
 async function getHomeExperienceParts() {
@@ -21,12 +21,8 @@ export default async function Home() {
   const { css, markup } = await getHomeExperienceParts();
 
   return (
-    <>
-      <style dangerouslySetInnerHTML={{ __html: css }} />
-      <main className={styles.reactHomeExperience}>
-        <div dangerouslySetInnerHTML={{ __html: markup }} />
-      </main>
-      <Script src="/assets/yesbakery-3d.module.js" strategy="afterInteractive" type="module" />
-    </>
+    <main className={styles.reactHomeExperience}>
+      <ThreeHomeExperience css={css} markup={markup} />
+    </main>
   );
 }
