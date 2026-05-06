@@ -12,6 +12,31 @@
   margin: 0 auto;
 }
 
+.siteCredit {
+  margin: 24px 0 8px;
+  padding: 12px 16px;
+  border-radius: 18px;
+  background: #080808;
+  box-shadow: 0 18px 40px rgba(20, 12, 8, 0.16);
+}
+
+.siteCreditLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: rgba(255, 248, 244, 0.86);
+  text-decoration: none;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+}
+
+.siteCreditLogo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
 .embeddedHomePage {
   width: 100%;
   min-height: 100vh;
@@ -1764,5 +1789,11 @@
 
   .modalFooter .submitButton {
     width: 100%;
+  }
+
+  .siteCreditLink {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
   }
 }

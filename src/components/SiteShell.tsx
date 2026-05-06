@@ -122,6 +122,25 @@ export function SiteShell({ children }: PropsWithChildren) {
         </header>
 
         {children}
+
+        <footer className={styles.siteCredit}>
+          <a
+            href="https://webrandca.com"
+            target="_blank"
+            rel="noreferrer"
+            className={styles.siteCreditLink}
+            aria-label="Website created by WeBrandCA"
+          >
+            <span>Website created by WeBrandCA</span>
+            <Image
+              src="/WEBrandLogo-f.png"
+              alt="WeBrandCA logo"
+              width={840}
+              height={806}
+              className={styles.siteCreditLogo}
+            />
+          </a>
+        </footer>
       </div>
     </main>
   );
