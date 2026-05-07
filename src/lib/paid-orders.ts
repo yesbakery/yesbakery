@@ -18,6 +18,7 @@ export type RecordedPaidOrder = {
   statusUpdatedAt?: string;
   pickedUpAt?: string;
   followUpEmailSentAt?: string;
+  archivedAt?: string;
 };
 
 const dataDirectory = path.join(process.cwd(), "data");
@@ -39,6 +40,7 @@ type PaidOrderRow = {
   status_updated_at: string | null;
   picked_up_at: string | null;
   follow_up_email_sent_at: string | null;
+  archived_at: string | null;
 };
 
 function mapRowToRecord(row: PaidOrderRow): RecordedPaidOrder {
@@ -58,6 +60,7 @@ function mapRowToRecord(row: PaidOrderRow): RecordedPaidOrder {
     statusUpdatedAt: row.status_updated_at || row.created_at,
     pickedUpAt: row.picked_up_at || "",
     followUpEmailSentAt: row.follow_up_email_sent_at || "",
+    archivedAt: row.archived_at || "",
   };
 }
 
@@ -74,6 +77,7 @@ async function readPaidOrders() {
       statusUpdatedAt: order.statusUpdatedAt || order.createdAt,
       pickedUpAt: order.pickedUpAt || "",
       followUpEmailSentAt: order.followUpEmailSentAt || "",
+      archivedAt: order.archivedAt || "",
     }));
   } catch {
     return [];
@@ -118,6 +122,7 @@ export async function recordPaidOrder(order: RecordedPaidOrder) {
         status_updated_at: order.statusUpdatedAt || order.createdAt,
         picked_up_at: order.pickedUpAt || null,
         follow_up_email_sent_at: order.followUpEmailSentAt || null,
+        archived_at: order.archivedAt || null,
       })
       .select("session_id")
       .maybeSingle();
@@ -150,6 +155,7 @@ export async function recordPaidOrder(order: RecordedPaidOrder) {
           statusUpdatedAt: order.statusUpdatedAt || order.createdAt,
           pickedUpAt: order.pickedUpAt || "",
           followUpEmailSentAt: order.followUpEmailSentAt || "",
+          archivedAt: order.archivedAt || "",
         },
         ...existingOrders,
       ],
@@ -185,6 +191,7 @@ export async function updatePaidOrder(
     if (typeof updates.followUpEmailSentAt === "string") {
       payload.follow_up_email_sent_at = updates.followUpEmailSentAt || null;
     }
+    if (typeof updates.archivedAt === "string") payload.archived_at = updates.archivedAt || null;
 
     const { data, error } = await supabase
       .from("paid_orders")

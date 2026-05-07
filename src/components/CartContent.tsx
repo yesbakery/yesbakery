@@ -10,6 +10,7 @@ import {
   CheckoutForm,
   clearStoredCheckout,
   currency,
+  defaultPickupScheduleSettings,
   getCartItemMinimumQuantity,
   getEarliestPickupDate,
   getPickupDateOptions,
@@ -18,6 +19,7 @@ import {
   initialCheckoutForm,
   isPickupDateValid,
   normalizeCartItem,
+  PickupScheduleSettings,
   readStoredCart,
   readStoredForm,
   saveStoredCart,
@@ -38,12 +40,46 @@ export function CartContent() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>(1);
   const [hasLoadedCheckoutState, setHasLoadedCheckoutState] = useState(false);
+  const [pickupScheduleSettings, setPickupScheduleSettings] = useState<PickupScheduleSettings>(defaultPickupScheduleSettings);
   const isSpanish = language === "es";
 
   useEffect(() => {
-    setCart(readStoredCart());
-    setCheckoutForm(readStoredForm());
-    setHasLoadedCheckoutState(true);
+    const timeoutId = window.setTimeout(() => {
+      setCart(readStoredCart());
+      setCheckoutForm(readStoredForm());
+      setHasLoadedCheckoutState(true);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadStorefrontSettings() {
+      try {
+        const response = await fetch("/api/storefront-settings", {
+          cache: "no-store",
+        });
+        const payload = (await response.json()) as { settings?: PickupScheduleSettings };
+
+        if (isMounted && payload.settings) {
+          setPickupScheduleSettings(payload.settings);
+        }
+      } catch {
+        if (isMounted) {
+          setPickupScheduleSettings(defaultPickupScheduleSettings);
+        }
+      }
+    }
+
+    void loadStorefrontSettings();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -82,12 +118,14 @@ export function CartContent() {
 
     if (!checkoutParam) {
       if (shippingCode) {
-        setCheckoutForm((current) => ({
-          ...current,
-          fulfillmentMethod: "shipping-code",
-          paymentMethod: "stripe",
-          shippingApprovalCode: shippingCode,
-        }));
+        window.setTimeout(() => {
+          setCheckoutForm((current) => ({
+            ...current,
+            fulfillmentMethod: "shipping-code",
+            paymentMethod: "stripe",
+            shippingApprovalCode: shippingCode,
+          }));
+        }, 0);
       }
       return;
     }
@@ -101,25 +139,31 @@ export function CartContent() {
       };
 
       if (Array.isArray(decoded.cart)) {
-        setCart(decoded.cart.map(normalizeCartItem));
+        window.setTimeout(() => {
+          setCart(decoded.cart!.map(normalizeCartItem));
+        }, 0);
       }
 
       if (decoded.checkoutForm) {
         const restoredCheckoutForm = decoded.checkoutForm;
-        setCheckoutForm((current) => ({
-          ...current,
-          ...restoredCheckoutForm,
-          fulfillmentMethod: "shipping-code",
-          paymentMethod: "stripe",
-          shippingApprovalCode: shippingCode || restoredCheckoutForm.shippingApprovalCode || "",
-        }));
+        window.setTimeout(() => {
+          setCheckoutForm((current) => ({
+            ...current,
+            ...restoredCheckoutForm,
+            fulfillmentMethod: "shipping-code",
+            paymentMethod: "stripe",
+            shippingApprovalCode: shippingCode || restoredCheckoutForm.shippingApprovalCode || "",
+          }));
+        }, 0);
       }
     } catch {
-      setCheckoutError(
-        isSpanish
-          ? "No pudimos restaurar su carrito aprobado desde el enlace del correo."
-          : "We couldn't restore your approved shipping cart from the email link.",
-      );
+      window.setTimeout(() => {
+        setCheckoutError(
+          isSpanish
+            ? "No pudimos restaurar su carrito aprobado desde el enlace del correo."
+            : "We couldn't restore your approved shipping cart from the email link.",
+        );
+      }, 0);
     }
   }, [hasLoadedCheckoutState, isSpanish]);
 
@@ -128,9 +172,12 @@ export function CartContent() {
   const needsShippingDetails =
     checkoutForm.fulfillmentMethod === "shipping-request" || checkoutForm.fulfillmentMethod === "shipping-code";
   const hasApprovedShippingCode = checkoutForm.shippingApprovalCode.trim().length > 0;
-  const pickupDateMin = needsShippingDetails ? getEarliestShippingDate() : getEarliestPickupDate();
+  const pickupDateMin = needsShippingDetails
+    ? getEarliestShippingDate()
+    : getEarliestPickupDate(pickupScheduleSettings);
   const pickupDateMax = needsShippingDetails ? undefined : getLatestPickupDate();
-  const pickupDateOptions = getPickupDateOptions();
+  const pickupDateOptions = getPickupDateOptions(pickupScheduleSettings);
+  const pickupOrderingBlocked = pickupScheduleSettings.blockSaturday && pickupScheduleSettings.blockSunday;
 
   function formatPickupOption(value: string) {
     const date = new Date(`${value}T12:00:00`);
@@ -223,11 +270,17 @@ export function CartContent() {
         : "Please complete your name, email, phone, and date before continuing.";
     }
 
-    if (!isPickupDateValid(checkoutForm.pickupDate, checkoutForm.fulfillmentMethod)) {
+    if (checkoutForm.fulfillmentMethod === "pickup" && pickupOrderingBlocked) {
+      return isSpanish
+        ? "Los pedidos para recoger están temporalmente desactivados."
+        : "Pickup ordering is temporarily disabled.";
+    }
+
+    if (!isPickupDateValid(checkoutForm.pickupDate, checkoutForm.fulfillmentMethod, pickupScheduleSettings)) {
       if (checkoutForm.fulfillmentMethod === "pickup") {
         return isSpanish
-          ? "Por favor elija una fecha de recogida en sábado o domingo que esté al menos a 48 horas de distancia."
-          : "Please choose a Saturday or Sunday pickup date that is at least 48 hours away.";
+          ? "Por favor elija una fecha de recogida disponible que esté al menos a 48 horas de distancia."
+          : "Please choose an available pickup date that is at least 48 hours away.";
       }
 
       return isSpanish
@@ -270,6 +323,30 @@ export function CartContent() {
     }
 
     return "";
+  }
+
+  function getPickupOptionDescription() {
+    if (pickupOrderingBlocked) {
+      return isSpanish
+        ? "Los pedidos para recoger están temporalmente desactivados."
+        : "Pickup ordering is temporarily unavailable.";
+    }
+
+    if (pickupScheduleSettings.blockSaturday) {
+      return isSpanish
+        ? "La recogida está disponible solo los domingos y con al menos 48 horas de anticipación."
+        : "Pickup is available on Sundays only, and orders must be placed at least 48 hours in advance.";
+    }
+
+    if (pickupScheduleSettings.blockSunday) {
+      return isSpanish
+        ? "La recogida está disponible solo los sábados y con al menos 48 horas de anticipación."
+        : "Pickup is available on Saturdays only, and orders must be placed at least 48 hours in advance.";
+    }
+
+    return isSpanish
+      ? "Las fechas de recogida son solo sábados y domingos, y cada pedido debe hacerse con al menos 48 horas de anticipación."
+      : "Pickup dates are Saturdays and Sundays only, and each order must be placed at least 48 hours in advance.";
   }
 
   async function submitShippingRequest() {
@@ -590,15 +667,12 @@ export function CartContent() {
                   type="button"
                   className={styles.checkoutOptionCard}
                   onClick={() => selectCheckoutType("pickup-later")}
+                  disabled={pickupOrderingBlocked}
                 >
                   <strong>
                     {isSpanish ? "Hacer pedido, pagar y recoger en Union City" : "Place order, pay and pick up at Union City"}
                   </strong>
-                  <p>
-                    {isSpanish
-                      ? "Las fechas de recogida son solo sábados y domingos, y cada pedido debe hacerse con al menos 48 horas de anticipación."
-                      : "Pickup dates are Saturdays and Sundays only, and each order must be placed at least 48 hours in advance."}
-                  </p>
+                  <p>{getPickupOptionDescription()}</p>
                 </button>
 
                 <button
@@ -691,7 +765,7 @@ export function CartContent() {
                         required
                       >
                         <option value="">
-                          {isSpanish ? "Seleccione un sábado o domingo" : "Select a Saturday or Sunday"}
+                          {isSpanish ? "Seleccione una fecha disponible" : "Select an available pickup date"}
                         </option>
                         {pickupDateOptions.map((option) => (
                           <option key={option} value={option}>
@@ -713,9 +787,7 @@ export function CartContent() {
                     )}
                     {checkoutForm.fulfillmentMethod === "pickup" ? (
                       <span className={styles.fieldHint}>
-                        {isSpanish
-                          ? "Las fechas de recogida deben ser un sábado o domingo futuro y estar al menos a 48 horas de distancia."
-                          : "Pickup dates must be on a future Saturday or Sunday and at least 48 hours away."}
+                        {getPickupOptionDescription()}
                       </span>
                     ) : (
                       <span className={styles.fieldHint}>

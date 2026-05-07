@@ -1,7 +1,9 @@
 import Stripe from "stripe";
 import { NextRequest, NextResponse } from "next/server";
 import { getMinimumQuantityForProduct, products } from "../../../lib/catalog";
+import { isPickupDateValid } from "../../../lib/pickup-scheduling";
 import { getStripePriceId, getStripeServerClient } from "../../../lib/stripe-config";
+import { getStorefrontSettings } from "../../../lib/storefront-settings";
 import { findApprovedShippingRequestByCode } from "../../../lib/shipping-requests";
 
 type CheckoutPayload = {
@@ -67,13 +69,27 @@ export async function POST(request: NextRequest) {
   const email = requireString(payload.checkoutForm?.email);
   const phone = requireString(payload.checkoutForm?.phone);
   const pickupDate = requireString(payload.checkoutForm?.pickupDate);
-  const fulfillmentMethod = requireString(payload.checkoutForm?.fulfillmentMethod) || "pickup";
+  const rawFulfillmentMethod = requireString(payload.checkoutForm?.fulfillmentMethod);
+  const fulfillmentMethod =
+    rawFulfillmentMethod === "shipping-request" || rawFulfillmentMethod === "shipping-code"
+      ? rawFulfillmentMethod
+      : "pickup";
   const shippingRequest = requireString(payload.checkoutForm?.shippingRequest);
   const shippingApprovalCode = requireString((payload.checkoutForm as { shippingApprovalCode?: string } | undefined)?.shippingApprovalCode);
   const notes = requireString(payload.checkoutForm?.notes);
 
   if (!fullName || !email || !phone || !pickupDate) {
     return badRequest("Please complete the checkout form before paying.");
+  }
+
+  const storefrontSettings = await getStorefrontSettings();
+
+  if (!isPickupDateValid(pickupDate, fulfillmentMethod, storefrontSettings)) {
+    return badRequest(
+      fulfillmentMethod === "pickup"
+        ? "This pickup date is not currently available."
+        : "Orders must be placed with enough lead time.",
+    );
   }
 
   if (cart.length === 0) {

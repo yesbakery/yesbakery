@@ -11,7 +11,8 @@ create table if not exists public.pickup_orders (
   status text not null default 'new',
   status_updated_at timestamptz not null default now(),
   picked_up_at timestamptz,
-  follow_up_email_sent_at timestamptz
+  follow_up_email_sent_at timestamptz,
+  archived_at timestamptz
 );
 
 create table if not exists public.paid_orders (
@@ -29,5 +30,23 @@ create table if not exists public.paid_orders (
   status text not null default 'new',
   status_updated_at timestamptz not null default now(),
   picked_up_at timestamptz,
-  follow_up_email_sent_at timestamptz
+  follow_up_email_sent_at timestamptz,
+  archived_at timestamptz
 );
+
+create table if not exists public.storefront_settings (
+  id text primary key,
+  block_saturday boolean not null default false,
+  block_sunday boolean not null default false,
+  updated_at timestamptz not null default now()
+);
+
+insert into public.storefront_settings (id, block_saturday, block_sunday)
+values ('default', false, false)
+on conflict (id) do nothing;
+
+alter table public.pickup_orders
+  add column if not exists archived_at timestamptz;
+
+alter table public.paid_orders
+  add column if not exists archived_at timestamptz;

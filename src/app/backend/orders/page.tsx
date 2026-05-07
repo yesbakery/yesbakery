@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { BackendNav } from "../../../components/BackendNav";
 
 type BackendOrder = {
   id: string;
@@ -19,11 +20,12 @@ type BackendOrder = {
   statusUpdatedAt: string;
   pickedUpAt: string;
   followUpEmailSentAt: string;
+  archivedAt: string;
 };
 
 type OrderStatus = BackendOrder["status"];
 type OrderTypeFilter = "all" | BackendOrder["type"];
-type PickupFilter = "all" | "coming-weekend" | "future" | "no-date";
+type PickupFilter = "all" | "coming-saturday" | "coming-sunday" | "future" | "no-date";
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -75,7 +77,7 @@ function formatStatusLabel(status: OrderStatus) {
     case "in-progress":
       return "In Progress";
     case "done":
-      return "Done";
+      return "Ready for Pickup";
     case "picked-up":
       return "Picked Up";
     default:
@@ -143,7 +145,7 @@ export default function BackendOrdersPage() {
 
   async function loadOrders() {
     try {
-      const response = await fetch("/api/admin/orders", {
+      const response = await fetch("/api/admin/orders?scope=active", {
         cache: "no-store",
       });
       const payload = (await response.json()) as { orders?: BackendOrder[] };
@@ -190,7 +192,11 @@ export default function BackendOrdersPage() {
       const pickupDate = parsePickupDate(order.pickupDate);
       const pickupDateKey = pickupDate ? toDateKey(pickupDate) : "";
 
-      if (pickupFilter === "coming-weekend" && pickupDateKey !== saturdayKey && pickupDateKey !== sundayKey) {
+      if (pickupFilter === "coming-saturday" && pickupDateKey !== saturdayKey) {
+        return false;
+      }
+
+      if (pickupFilter === "coming-sunday" && pickupDateKey !== sundayKey) {
         return false;
       }
 
@@ -368,6 +374,82 @@ export default function BackendOrdersPage() {
     }
   }
 
+  async function updateArchivedState(order: BackendOrder, archived: boolean) {
+    setActionMessage("");
+    setUpdatingKey(`${order.type}:${order.id}:${archived ? "archive" : "restore"}`);
+
+    try {
+      const response = await fetch("/api/admin/orders/archive", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: order.id,
+          type: order.type,
+          archived,
+        }),
+      });
+
+      const payload = await readJsonResponse<{ error?: string; order?: BackendOrder }>(response);
+
+      if (!response.ok || !payload.order) {
+        throw new Error(payload.error || "Order archive could not be updated.");
+      }
+
+      setOrders((currentOrders) => currentOrders.filter((currentOrder) => buildOrderKey(currentOrder) !== buildOrderKey(order)));
+      setSelectedOrderKeys((current) => current.filter((entry) => entry !== buildOrderKey(order)));
+      setActionMessage(archived ? "Order archived." : "Order restored.");
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : "Order archive could not be updated.");
+    } finally {
+      setUpdatingKey("");
+    }
+  }
+
+  async function archiveSelectedOrders() {
+    if (selectedFilteredOrders.length === 0) {
+      setActionMessage("Select at least one order first.");
+      return;
+    }
+
+    setActionMessage("");
+    setUpdatingKey("batch:archive");
+
+    try {
+      await Promise.all(
+        selectedFilteredOrders.map(async (order) => {
+          const response = await fetch("/api/admin/orders/archive", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              id: order.id,
+              type: order.type,
+              archived: true,
+            }),
+          });
+
+          const payload = await readJsonResponse<{ error?: string; order?: BackendOrder }>(response);
+
+          if (!response.ok || !payload.order) {
+            throw new Error(payload.error || `Order ${order.id} could not be archived.`);
+          }
+        }),
+      );
+
+      const archivedKeys = new Set(selectedFilteredOrders.map(buildOrderKey));
+      setOrders((currentOrders) => currentOrders.filter((order) => !archivedKeys.has(buildOrderKey(order))));
+      setSelectedOrderKeys([]);
+      setActionMessage("Selected orders archived.");
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : "Selected orders could not be archived.");
+    } finally {
+      setUpdatingKey("");
+    }
+  }
+
   function toggleOrderSelection(order: BackendOrder) {
     const orderKey = buildOrderKey(order);
     setSelectedOrderKeys((current) =>
@@ -385,11 +467,6 @@ export default function BackendOrdersPage() {
     const merged = new Set(selectedOrderKeys);
     filteredOrders.forEach((order) => merged.add(buildOrderKey(order)));
     setSelectedOrderKeys([...merged]);
-  }
-
-  async function logout() {
-    await fetch("/api/admin/logout", { method: "POST" });
-    window.location.href = "/backend/login";
   }
 
   return (
@@ -414,42 +491,12 @@ export default function BackendOrdersPage() {
             Backend
           </p>
           <h1 style={{ marginTop: "10px", color: "#5f311c", fontFamily: "var(--font-display)", fontSize: "3rem" }}>
-            Orders
+            Check Orders
           </h1>
           <p style={{ marginTop: "12px", color: "#6f5143", lineHeight: 1.7 }}>
-            View every order in one list, filter the queue, and manage several orders at once.
+            View active orders, filter the queue, archive completed work, and manage several orders at once.
           </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginTop: "18px" }}>
-            <a
-              href="/backend/orders"
-              style={{
-                padding: "11px 16px",
-                borderRadius: "999px",
-                textDecoration: "none",
-                background: "linear-gradient(135deg, #c47a45, #a6542d)",
-                color: "#fff8f4",
-                fontWeight: 700,
-              }}
-            >
-              Orders
-            </a>
-            <a
-              href="/backend/shipping-requests"
-              style={{
-                padding: "11px 16px",
-                borderRadius: "999px",
-                textDecoration: "none",
-                background: "rgba(255, 243, 236, 0.9)",
-                color: "#64351e",
-                fontWeight: 700,
-              }}
-            >
-              Shipping Requests
-            </a>
-            <button type="button" onClick={logout} style={buttonStyle()}>
-              Sign Out
-            </button>
-          </div>
+          <BackendNav active="orders" />
         </header>
 
         {actionMessage ? (
@@ -492,7 +539,7 @@ export default function BackendOrdersPage() {
                 display: "grid",
                 gap: "10px",
                 gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                width: "min(820px, 100%)",
+                width: "min(980px, 100%)",
               }}
             >
               <input
@@ -523,7 +570,7 @@ export default function BackendOrdersPage() {
                 <option value="all">All Statuses</option>
                 <option value="new">New</option>
                 <option value="in-progress">In Progress</option>
-                <option value="done">Done</option>
+                <option value="done">Ready for Pickup</option>
                 <option value="picked-up">Picked Up</option>
               </select>
 
@@ -555,7 +602,8 @@ export default function BackendOrdersPage() {
                 }}
               >
                 <option value="all">All Pickup Dates</option>
-                <option value="coming-weekend">Coming Weekend</option>
+                <option value="coming-saturday">This Coming Saturday</option>
+                <option value="coming-sunday">This Coming Sunday</option>
                 <option value="future">Today or Future</option>
                 <option value="no-date">No Pickup Date</option>
               </select>
@@ -593,7 +641,7 @@ export default function BackendOrdersPage() {
                 disabled={selectedFilteredOrders.length === 0 || updatingKey.startsWith("batch:")}
                 style={buttonStyle()}
               >
-                Mark Done
+                Mark Ready for Pickup
               </button>
               <button
                 type="button"
@@ -602,6 +650,14 @@ export default function BackendOrdersPage() {
                 style={buttonStyle()}
               >
                 Mark Picked Up
+              </button>
+              <button
+                type="button"
+                onClick={archiveSelectedOrders}
+                disabled={selectedFilteredOrders.length === 0 || updatingKey.startsWith("batch:")}
+                style={buttonStyle()}
+              >
+                Archive Selected
               </button>
             </div>
 
@@ -787,7 +843,7 @@ export default function BackendOrdersPage() {
                           disabled={updatingKey.length > 0}
                           style={buttonStyle(order.status === "done")}
                         >
-                          Done
+                          Ready for Pickup
                         </button>
                         <button
                           type="button"
@@ -802,6 +858,14 @@ export default function BackendOrdersPage() {
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
                         <button type="button" onClick={() => printOrder(order)} style={buttonStyle()}>
                           Print
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateArchivedState(order, true)}
+                          disabled={updatingKey.length > 0}
+                          style={buttonStyle()}
+                        >
+                          Archive
                         </button>
                       </div>
                     </div>

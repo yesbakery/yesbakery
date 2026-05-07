@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BackendNav } from "../../../components/BackendNav";
 
 type ShippingRequestRecord = {
   id: string;
@@ -44,7 +45,13 @@ export default function ShippingRequestsBackendPage() {
   }
 
   useEffect(() => {
-    void loadRequests();
+    const timeoutId = window.setTimeout(() => {
+      void loadRequests();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, []);
 
   async function approveRequest(requestId: string) {
@@ -103,11 +110,6 @@ export default function ShippingRequestsBackendPage() {
     }
   }
 
-  async function logout() {
-    await fetch("/api/admin/logout", { method: "POST" });
-    window.location.href = "/backend/login";
-  }
-
   return (
     <main
       style={{
@@ -136,49 +138,7 @@ export default function ShippingRequestsBackendPage() {
             Review shipping arrangement requests, approve the ones you want to fulfill, and send the customer
             their approval code with a preloaded cart link.
           </p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginTop: "18px" }}>
-            <a
-              href="/backend/orders"
-              style={{
-                padding: "11px 16px",
-                borderRadius: "999px",
-                textDecoration: "none",
-                background: "rgba(255, 243, 236, 0.9)",
-                color: "#64351e",
-                fontWeight: 700,
-              }}
-            >
-              Orders
-            </a>
-            <a
-              href="/backend/shipping-requests"
-              style={{
-                padding: "11px 16px",
-                borderRadius: "999px",
-                textDecoration: "none",
-                background: "linear-gradient(135deg, #c47a45, #a6542d)",
-                color: "#fff8f4",
-                fontWeight: 700,
-              }}
-            >
-              Shipping Requests
-            </a>
-            <button
-              type="button"
-              onClick={logout}
-              style={{
-                padding: "11px 16px",
-                borderRadius: "999px",
-                border: 0,
-                background: "rgba(255, 243, 236, 0.9)",
-                color: "#64351e",
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-            >
-              Sign Out
-            </button>
-          </div>
+          <BackendNav active="shipping-requests" />
         </header>
 
         {actionMessage ? (

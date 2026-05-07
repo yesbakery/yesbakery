@@ -21,6 +21,7 @@ export type UnifiedOrder = {
   statusUpdatedAt: string;
   pickedUpAt: string;
   followUpEmailSentAt: string;
+  archivedAt: string;
 };
 
 function normalizePaidOrder(order: RecordedPaidOrder): UnifiedOrder {
@@ -41,6 +42,7 @@ function normalizePaidOrder(order: RecordedPaidOrder): UnifiedOrder {
     statusUpdatedAt: order.statusUpdatedAt || order.createdAt,
     pickedUpAt: order.pickedUpAt || "",
     followUpEmailSentAt: order.followUpEmailSentAt || "",
+    archivedAt: order.archivedAt || "",
   };
 }
 
@@ -62,20 +64,36 @@ function normalizePickupOrder(order: RecordedPickupOrder): UnifiedOrder {
     statusUpdatedAt: order.statusUpdatedAt || order.createdAt,
     pickedUpAt: order.pickedUpAt || "",
     followUpEmailSentAt: order.followUpEmailSentAt || "",
+    archivedAt: order.archivedAt || "",
   };
 }
 
-export async function listUnifiedOrders() {
+export async function listUnifiedOrders(options?: { scope?: "active" | "archived" | "all" }) {
   const [paidOrders, pickupOrders] = await Promise.all([listPaidOrders(), listPickupOrders()]);
+  const scope = options?.scope || "active";
 
-  return [
+  const orders = [
     ...paidOrders.map(normalizePaidOrder),
     ...pickupOrders.map(normalizePickupOrder),
-  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  ];
+
+  const filteredOrders = orders.filter((order) => {
+    if (scope === "archived") {
+      return Boolean(order.archivedAt);
+    }
+
+    if (scope === "all") {
+      return true;
+    }
+
+    return !order.archivedAt;
+  });
+
+  return filteredOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
-export async function getUnifiedOrder(type: UnifiedOrder["type"], id: string) {
-  const orders = await listUnifiedOrders();
+export async function getUnifiedOrder(type: UnifiedOrder["type"], id: string, options?: { scope?: "active" | "archived" | "all" }) {
+  const orders = await listUnifiedOrders(options);
   return orders.find((order) => order.type === type && order.id === id) || null;
 }
 
@@ -87,6 +105,7 @@ export async function updateUnifiedOrder(
     statusUpdatedAt?: string;
     pickedUpAt?: string;
     followUpEmailSentAt?: string;
+    archivedAt?: string;
   },
 ) {
   if (type === "paid-online") {

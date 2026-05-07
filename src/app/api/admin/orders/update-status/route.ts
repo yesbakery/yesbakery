@@ -44,7 +44,7 @@ function formatStatusLabel(status: OrderStatus) {
     case "in-progress":
       return "In Progress";
     case "done":
-      return "Done";
+      return "Ready for Pickup";
     case "picked-up":
       return "Picked Up";
     default:
@@ -97,7 +97,65 @@ async function buildInlineImageAttachment(publicAssetPath: string, contentId: st
 
 type InlineImageAttachment = NonNullable<Awaited<ReturnType<typeof buildInlineImageAttachment>>>;
 
-async function sendPickedUpEmail(order: UnifiedOrder) {
+const PICKUP_ADDRESS = "32380 Sheffield Ln, Union City, CA 94587";
+const PICKUP_PHONE = "510-329-8786";
+const PICKUP_MAPS_URL =
+  "https://www.google.com/maps/search/?api=1&query=32380+Sheffield+Ln,+Union+City,+CA+94587";
+
+function renderEmailShell(title: string, body: string, logoSrc: string) {
+  return `
+    <div style="font-family: Georgia, serif; background: #fbf3ef; padding: 32px; color: #4f2c1a;">
+      <div style="max-width: 640px; margin: 0 auto; background: #fffaf7; border-radius: 24px; padding: 28px; border: 1px solid rgba(107, 68, 45, 0.12);">
+        ${
+          logoSrc
+            ? `<div style="text-align:center; margin-bottom: 20px;"><img src="${logoSrc}" alt="Yes Bakery & More logo" style="width: 220px; max-width: 100%; height: auto; display: inline-block;" /></div>`
+            : ""
+        }
+        <h2 style="font-size: 32px; margin: 0 0 14px; color: #5f311c;">${title}</h2>
+        ${body}
+      </div>
+    </div>
+  `;
+}
+
+async function sendInProgressEmail(order: UnifiedOrder) {
+  const resendApiKey = process.env.RESEND_API_KEY?.trim() || "";
+  const resendFromEmail = process.env.RESEND_FROM_EMAIL?.trim() || "onboarding@resend.dev";
+
+  if (!resendApiKey || resendApiKey === "re_xxxxxxxxx" || !order.customerEmail) {
+    return;
+  }
+
+  const resend = new Resend(resendApiKey);
+  const logoImage = await buildInlineImageAttachment(EMAIL_LOGO_PATH, "yesbakery-logo");
+
+  await resend.emails.send({
+    attachments: logoImage ? [logoImage.attachment] : [],
+    from: resendFromEmail,
+    to: order.customerEmail,
+    replyTo: "yesbakery@gmail.com",
+    subject: "Your Yes Bakery order is being processed",
+    html: renderEmailShell(
+      `Your order is being processed${order.customerName ? `, ${order.customerName}` : ""}.`,
+      `
+        <p style="line-height: 1.7; color: #6f5143; margin-bottom: 16px;">
+          We are working on your order now and will send another update as soon as it is ready.
+        </p>
+        <p style="line-height: 1.7; color: #6f5143; margin-bottom: 16px;">
+          <strong style="color:#5f311c;">Order:</strong> ${order.orderSummary}<br />
+          <strong style="color:#5f311c;">Total:</strong> ${formatMoney(order.amountTotal, order.currency)}<br />
+          <strong style="color:#5f311c;">Pickup date:</strong> ${order.pickupDate || "Not provided"}
+        </p>
+        <p style="line-height: 1.7; color: #6f5143; margin-top: 24px;">
+          If you ever have a question, reply to this email and we will be happy to help.
+        </p>
+      `,
+      logoImage?.src || "",
+    ),
+  });
+}
+
+async function sendDoneEmail(order: UnifiedOrder) {
   const resendApiKey = process.env.RESEND_API_KEY?.trim() || "";
   const resendFromEmail = process.env.RESEND_FROM_EMAIL?.trim() || "onboarding@resend.dev";
 
@@ -151,40 +209,87 @@ async function sendPickedUpEmail(order: UnifiedOrder) {
     from: resendFromEmail,
     to: order.customerEmail,
     replyTo: "yesbakery@gmail.com",
-    subject: "Thank you for picking up your Yes Bakery order",
-    html: `
-      <div style="font-family: Georgia, serif; background: #fbf3ef; padding: 32px; color: #4f2c1a;">
-        <div style="max-width: 640px; margin: 0 auto; background: #fffaf7; border-radius: 24px; padding: 28px; border: 1px solid rgba(107, 68, 45, 0.12);">
-          ${
-            logoImage?.src
-              ? `<div style="text-align:center; margin-bottom: 20px;"><img src="${logoImage.src}" alt="Yes Bakery & More logo" style="width: 220px; max-width: 100%; height: auto; display: inline-block;" /></div>`
-              : ""
-          }
-          <h2 style="font-size: 32px; margin: 0 0 14px; color: #5f311c;">Thank you${order.customerName ? `, ${order.customerName}` : ""}.</h2>
-          <p style="line-height: 1.7; color: #6f5143; margin-bottom: 16px;">
-            We loved preparing your order, and we hope everything brought a little extra warmth to your table.
+    subject: "Your Yes Bakery order is ready for pickup",
+    html: renderEmailShell(
+      `Your order is ready${order.customerName ? `, ${order.customerName}` : ""}.`,
+      `
+        <p style="line-height: 1.7; color: #6f5143; margin-bottom: 16px;">
+          Your order is complete and ready for pickup.
+        </p>
+        <div style="margin: 22px 0; padding: 20px; border-radius: 20px; background: #f8eee7; border: 1px solid rgba(107, 68, 45, 0.12); text-align: center;">
+          <p style="margin: 0 0 10px; color: #8f583c; font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700;">
+            Pickup Address
           </p>
-          <p style="line-height: 1.7; color: #6f5143; margin-bottom: 16px;">
-            <strong style="color:#5f311c;">Order:</strong> ${order.orderSummary}<br />
-            <strong style="color:#5f311c;">Total:</strong> ${formatMoney(order.amountTotal, order.currency)}<br />
-            <strong style="color:#5f311c;">Pickup date:</strong> ${order.pickupDate || "Not provided"}
+          <p style="margin: 0; color: #5f311c; font-size: 28px; line-height: 1.25; font-weight: 700;">
+            ${PICKUP_ADDRESS}
           </p>
-          ${
-            suggestions.length > 0
-              ? `
-                <div style="margin-top: 24px; padding: 18px; border-radius: 18px; background: #f8eee7;">
-                  <p style="margin: 0 0 10px; font-weight: 700; color: #5f311c;">For your next order, you might enjoy:</p>
-                  ${suggestionsMarkup}
-                </div>
-              `
-              : ""
-          }
-          <p style="line-height: 1.7; color: #6f5143; margin-top: 24px;">
-            If you ever have a question about a future order, reply to this email or contact us and we will be happy to help.
+          <p style="margin: 14px 0 0;">
+            <a href="${PICKUP_MAPS_URL}" style="display: inline-block; color: #a6542d; font-size: 18px; font-weight: 700; text-decoration: none;">
+              📍 Open in Google Maps
+            </a>
+          </p>
+          <p style="margin: 14px 0 0; color: #6f5143; font-size: 18px; line-height: 1.5; font-weight: 700;">
+            Text or Call ${PICKUP_PHONE} for help.
           </p>
         </div>
-      </div>
-    `,
+        <p style="line-height: 1.7; color: #6f5143; margin-bottom: 16px;">
+          <strong style="color:#5f311c;">Order:</strong> ${order.orderSummary}<br />
+          <strong style="color:#5f311c;">Total:</strong> ${formatMoney(order.amountTotal, order.currency)}<br />
+          <strong style="color:#5f311c;">Pickup date:</strong> ${order.pickupDate || "Not provided"}
+        </p>
+        ${
+          suggestions.length > 0
+            ? `
+              <div style="margin-top: 24px; padding: 18px; border-radius: 18px; background: #f8eee7;">
+                <p style="margin: 0 0 10px; font-weight: 700; color: #5f311c;">For your next order, you might enjoy:</p>
+                ${suggestionsMarkup}
+              </div>
+            `
+            : ""
+        }
+        <p style="line-height: 1.7; color: #6f5143; margin-top: 24px;">
+          If you ever have a question about a future order, reply to this email or contact us and we will be happy to help.
+        </p>
+      `,
+      logoImage?.src || "",
+    ),
+  });
+}
+
+async function sendPickedUpEmail(order: UnifiedOrder) {
+  const resendApiKey = process.env.RESEND_API_KEY?.trim() || "";
+  const resendFromEmail = process.env.RESEND_FROM_EMAIL?.trim() || "onboarding@resend.dev";
+
+  if (!resendApiKey || resendApiKey === "re_xxxxxxxxx" || !order.customerEmail) {
+    return;
+  }
+
+  const resend = new Resend(resendApiKey);
+  const logoImage = await buildInlineImageAttachment(EMAIL_LOGO_PATH, "yesbakery-logo");
+
+  await resend.emails.send({
+    attachments: logoImage ? [logoImage.attachment] : [],
+    from: resendFromEmail,
+    to: order.customerEmail,
+    replyTo: "yesbakery@gmail.com",
+    subject: "Thank you for picking up your Yes Bakery order",
+    html: renderEmailShell(
+      `Thank you${order.customerName ? `, ${order.customerName}` : ""}.`,
+      `
+        <p style="line-height: 1.7; color: #6f5143; margin-bottom: 16px;">
+          We loved preparing your order, and we hope everything brought a little extra warmth to your table.
+        </p>
+        <p style="line-height: 1.7; color: #6f5143; margin-bottom: 16px;">
+          <strong style="color:#5f311c;">Order:</strong> ${order.orderSummary}<br />
+          <strong style="color:#5f311c;">Total:</strong> ${formatMoney(order.amountTotal, order.currency)}<br />
+          <strong style="color:#5f311c;">Pickup date:</strong> ${order.pickupDate || "Not provided"}
+        </p>
+        <p style="line-height: 1.7; color: #6f5143; margin-top: 24px;">
+          If you ever have a question about a future order, reply to this email or contact us and we will be happy to help.
+        </p>
+      `,
+      logoImage?.src || "",
+    ),
   });
 }
 
@@ -228,6 +333,14 @@ export async function POST(request: NextRequest) {
     }
 
     let followUpEmailSent = false;
+
+    if (status === "in-progress") {
+      await sendInProgressEmail(updatedOrder);
+    }
+
+    if (status === "done") {
+      await sendDoneEmail(updatedOrder);
+    }
 
     if (status === "picked-up" && !existingOrder.followUpEmailSentAt) {
       await sendPickedUpEmail(updatedOrder);

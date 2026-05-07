@@ -1,4 +1,15 @@
 import { getMinimumQuantityForProduct, Product } from "./catalog";
+import {
+  defaultPickupScheduleSettings,
+  getEarliestPickupDate as getEarliestPickupDateBase,
+  getEarliestShippingDate as getEarliestShippingDateBase,
+  getLatestPickupDate as getLatestPickupDateBase,
+  getPickupDateOptions as getPickupDateOptionsBase,
+  isPickupDateValid as isPickupDateValidBase,
+  PickupScheduleSettings,
+} from "./pickup-scheduling";
+export { defaultPickupScheduleSettings };
+export type { PickupScheduleSettings };
 
 export type CartItem = Product & {
   cartKey: string;
@@ -62,20 +73,6 @@ export const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
 });
-
-function toLocalDateString(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
-
-function startOfToday() {
-  const date = new Date();
-  date.setHours(0, 0, 0, 0);
-  return date;
-}
 
 export function normalizeCartItem(item: Partial<CartItem> & Product): CartItem {
   const selectedInclusions = Array.isArray(item.selectedInclusions) ? item.selectedInclusions : [];
@@ -163,63 +160,30 @@ export function canPlacePickupOrder() {
 }
 
 export function getEarliestShippingDate() {
-  const date = startOfToday();
-  date.setDate(date.getDate() + 2);
-  return toLocalDateString(date);
+  return getEarliestShippingDateBase();
 }
 
-export function getEarliestPickupDate() {
-  const date = startOfToday();
-  date.setDate(date.getDate() + 2);
-
-  while (![0, 6].includes(date.getDay())) {
-    date.setDate(date.getDate() + 1);
-  }
-
-  return toLocalDateString(date);
+export function getEarliestPickupDate(settings: PickupScheduleSettings = defaultPickupScheduleSettings) {
+  return getEarliestPickupDateBase(settings);
 }
 
 export function getLatestPickupDate() {
-  return "";
+  return getLatestPickupDateBase();
 }
 
-export function getPickupDateOptions(limit = 16) {
-  const earliestPickupDate = getEarliestPickupDate();
-  if (!earliestPickupDate) {
-    return [];
-  }
-
-  const options: string[] = [];
-  const cursor = new Date(`${earliestPickupDate}T00:00:00`);
-
-  while (options.length < limit) {
-    const day = cursor.getDay();
-    if (day === 6 || day === 0) {
-      options.push(toLocalDateString(cursor));
-    }
-
-    cursor.setDate(cursor.getDate() + 1);
-  }
-
-  return options;
+export function getPickupDateOptions(
+  settings: PickupScheduleSettings = defaultPickupScheduleSettings,
+  limit = 16,
+) {
+  return getPickupDateOptionsBase(settings, limit);
 }
 
-export function isPickupDateValid(value: string, fulfillmentMethod: CheckoutForm["fulfillmentMethod"] = "pickup") {
-  if (!value) {
-    return false;
-  }
-
-  if (fulfillmentMethod === "shipping-request" || fulfillmentMethod === "shipping-code") {
-    return value >= getEarliestShippingDate();
-  }
-
-  const earliestPickupDate = getEarliestPickupDate();
-  if (!earliestPickupDate || value < earliestPickupDate) {
-    return false;
-  }
-
-  const pickupDay = new Date(`${value}T00:00:00`).getDay();
-  return pickupDay === 6 || pickupDay === 0;
+export function isPickupDateValid(
+  value: string,
+  fulfillmentMethod: CheckoutForm["fulfillmentMethod"] = "pickup",
+  settings: PickupScheduleSettings = defaultPickupScheduleSettings,
+) {
+  return isPickupDateValidBase(value, fulfillmentMethod, settings);
 }
 
 export function formatCartSummary(cart: CartItem[]) {

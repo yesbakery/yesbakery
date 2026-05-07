@@ -93,6 +93,23 @@ export async function POST(request: NextRequest) {
         html: `
           <h2>Thank you for your order${customerName ? `, ${customerName}` : ""}.</h2>
           <p>Your payment has been received and your Yes Bakery order is confirmed.</p>
+          ${
+            fulfillmentMethod === "pickup"
+              ? `
+                <div style="margin: 22px auto; max-width: 460px; padding: 20px; border-radius: 20px; background: #fbf1ea; border: 1px solid rgba(166, 84, 45, 0.16); text-align: center;">
+                  <p style="margin: 0 0 8px; color: #8f583c; font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700;">
+                    Pick Up Date
+                  </p>
+                  <p style="margin: 0; color: #b43d2a; font-size: 32px; line-height: 1.2; font-weight: 800;">
+                    ${pickupDate || "Not provided"}
+                  </p>
+                  <p style="margin: 14px 0 0; color: #6f5143; line-height: 1.7;">
+                    This is not a delivery order, you will have to pick this order up at Union City, CA. Details will be provided once your order is completed.
+                  </p>
+                </div>
+              `
+              : ""
+          }
           <p><strong>Order summary:</strong></p>
           ${itemListMarkup}
           <p><strong>Total paid:</strong> ${totalPaid}</p>
@@ -102,7 +119,7 @@ export async function POST(request: NextRequest) {
           ${
             fulfillmentMethod === "shipping"
               ? `<p><strong>Shipping request:</strong> ${shippingRequest || "Requested. We will review your arrangement details and follow up by email."}</p>`
-              : "<p>Yes Bakery is located in Union City, California. Pickup details will be sent by email.</p>"
+              : ""
           }
           ${notes && notes !== "None" ? `<p><strong>Order notes:</strong> ${notes}</p>` : ""}
           <p>Thank you for supporting Yes Bakery & More.</p>

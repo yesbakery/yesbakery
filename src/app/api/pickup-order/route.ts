@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { getMinimumQuantityForProduct, products } from "../../../lib/catalog";
 import { renderOrderItemsEmail } from "../../../lib/email-order-items";
+import { isPickupDateValid } from "../../../lib/pickup-scheduling";
 import { recordPickupOrder } from "../../../lib/pickup-orders";
+import { getStorefrontSettings } from "../../../lib/storefront-settings";
 
 type PickupOrderPayload = {
   cart?: Array<{
@@ -73,6 +75,12 @@ export async function POST(request: NextRequest) {
 
   if (fulfillmentMethod !== "pickup" || paymentMethod !== "pickup") {
     return badRequest("This route only accepts pickup orders that will be paid at pickup.");
+  }
+
+  const storefrontSettings = await getStorefrontSettings();
+
+  if (!isPickupDateValid(pickupDate, "pickup", storefrontSettings)) {
+    return badRequest("This pickup date is not currently available.");
   }
 
   if (!pickupApprovalCode || !pickupApprovalCode.startsWith("YB-")) {
@@ -172,6 +180,17 @@ export async function POST(request: NextRequest) {
       html: `
         <h2>Thank you, ${fullName}.</h2>
         <p>Your order has been placed and reserved for pickup.</p>
+        <div style="margin: 22px auto; max-width: 460px; padding: 20px; border-radius: 20px; background: #fbf1ea; border: 1px solid rgba(166, 84, 45, 0.16); text-align: center;">
+          <p style="margin: 0 0 8px; color: #8f583c; font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700;">
+            Pick Up Date
+          </p>
+          <p style="margin: 0; color: #b43d2a; font-size: 32px; line-height: 1.2; font-weight: 800;">
+            ${pickupDate}
+          </p>
+          <p style="margin: 14px 0 0; color: #6f5143; line-height: 1.7;">
+            This is not a delivery order, you will have to pick this order up at Union City, CA. Details will be provided once your order is completed.
+          </p>
+        </div>
         <p><strong>Order ID:</strong> ${orderId}</p>
         <p><strong>Pickup date:</strong> ${pickupDate}</p>
         <p><strong>Payment:</strong> Pay at pickup</p>
@@ -179,7 +198,6 @@ export async function POST(request: NextRequest) {
         <p><strong>Items:</strong></p>
         ${itemListMarkup}
         <p><strong>Total due at pickup:</strong> ${formatAmount(totalDue)}</p>
-        <p>Yes Bakery is located in Union City, California. Pickup details will be provided by email.</p>
         ${notes ? `<p><strong>Order notes:</strong> ${notes.replace(/\n/g, "<br />")}</p>` : ""}
       `,
     });
