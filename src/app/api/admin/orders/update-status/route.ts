@@ -106,59 +106,64 @@ async function sendPickedUpEmail(request: NextRequest, order: UnifiedOrder) {
 }
 
 export async function POST(request: NextRequest) {
-  let payload: Payload;
-
   try {
-    payload = (await request.json()) as Payload;
-  } catch {
-    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
-  }
+    let payload: Payload;
 
-  const id = clean(payload.id);
-  const type = payload.type;
-  const status = payload.status;
+    try {
+      payload = (await request.json()) as Payload;
+    } catch {
+      return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+    }
 
-  if (!id || (type !== "paid-online" && type !== "pay-at-pickup")) {
-    return NextResponse.json({ error: "Order information is missing." }, { status: 400 });
-  }
+    const id = clean(payload.id);
+    const type = payload.type;
+    const status = payload.status;
 
-  if (!status || !["new", "in-progress", "done", "picked-up"].includes(status)) {
-    return NextResponse.json({ error: "A valid status is required." }, { status: 400 });
-  }
+    if (!id || (type !== "paid-online" && type !== "pay-at-pickup")) {
+      return NextResponse.json({ error: "Order information is missing." }, { status: 400 });
+    }
 
-  const existingOrder = await getUnifiedOrder(type, id);
+    if (!status || !["new", "in-progress", "done", "picked-up"].includes(status)) {
+      return NextResponse.json({ error: "A valid status is required." }, { status: 400 });
+    }
 
-  if (!existingOrder) {
-    return NextResponse.json({ error: "Order not found." }, { status: 404 });
-  }
+    const existingOrder = await getUnifiedOrder(type, id);
 
-  const now = new Date().toISOString();
-  const updatedOrder = await updateUnifiedOrder(type, id, {
-    status,
-    statusUpdatedAt: now,
-    pickedUpAt: status === "picked-up" ? now : existingOrder.pickedUpAt,
-  });
+    if (!existingOrder) {
+      return NextResponse.json({ error: "Order not found." }, { status: 404 });
+    }
 
-  if (!updatedOrder) {
-    return NextResponse.json({ error: "Order could not be updated." }, { status: 500 });
-  }
-
-  let followUpEmailSent = false;
-
-  if (status === "picked-up" && !existingOrder.followUpEmailSentAt) {
-    await sendPickedUpEmail(request, updatedOrder);
-    await updateUnifiedOrder(type, id, {
-      followUpEmailSentAt: now,
+    const now = new Date().toISOString();
+    const updatedOrder = await updateUnifiedOrder(type, id, {
+      status,
+      statusUpdatedAt: now,
+      pickedUpAt: status === "picked-up" ? now : existingOrder.pickedUpAt,
     });
-    followUpEmailSent = true;
-  }
 
-  return NextResponse.json({
-    ok: true,
-    order: {
-      ...updatedOrder,
-      followUpEmailSentAt: followUpEmailSent ? now : updatedOrder.followUpEmailSentAt,
-    },
-    statusLabel: formatStatusLabel(status),
-  });
+    if (!updatedOrder) {
+      return NextResponse.json({ error: "Order could not be updated." }, { status: 500 });
+    }
+
+    let followUpEmailSent = false;
+
+    if (status === "picked-up" && !existingOrder.followUpEmailSentAt) {
+      await sendPickedUpEmail(request, updatedOrder);
+      await updateUnifiedOrder(type, id, {
+        followUpEmailSentAt: now,
+      });
+      followUpEmailSent = true;
+    }
+
+    return NextResponse.json({
+      ok: true,
+      order: {
+        ...updatedOrder,
+        followUpEmailSentAt: followUpEmailSent ? now : updatedOrder.followUpEmailSentAt,
+      },
+      statusLabel: formatStatusLabel(status),
+    });
+  } catch (error) {
+    console.error("Admin order status update failed.", error);
+    return NextResponse.json({ error: "Order update failed unexpectedly." }, { status: 500 });
+  }
 }

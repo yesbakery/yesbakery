@@ -116,6 +116,20 @@ function buttonStyle(active = false) {
   } as const;
 }
 
+async function readJsonResponse<T>(response: Response) {
+  const text = await response.text();
+
+  if (!text) {
+    throw new Error("The server returned an empty response.");
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error("The server returned an invalid response.");
+  }
+}
+
 export default function BackendOrdersPage() {
   const [orders, setOrders] = useState<BackendOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -260,7 +274,7 @@ export default function BackendOrdersPage() {
         }),
       });
 
-      const payload = (await response.json()) as { error?: string; order?: BackendOrder };
+      const payload = await readJsonResponse<{ error?: string; order?: BackendOrder }>(response);
 
       if (!response.ok || !payload.order) {
         throw new Error(payload.error || "Order could not be updated.");
@@ -308,7 +322,7 @@ export default function BackendOrdersPage() {
             }),
           });
 
-          const payload = (await response.json()) as { error?: string; order?: BackendOrder };
+          const payload = await readJsonResponse<{ error?: string; order?: BackendOrder }>(response);
 
           if (!response.ok || !payload.order) {
             throw new Error(payload.error || `Order ${order.id} could not be updated.`);
