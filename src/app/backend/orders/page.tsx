@@ -33,6 +33,46 @@ function formatMoney(amount: number, currency: string) {
   }).format(amount / 100);
 }
 
+function parsePickupDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return null;
+  }
+
+  const date = new Date(`${value}T12:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function toDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatPickupDayHeading(date: Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(date);
+}
+
+function getComingWeekend() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const day = today.getDay();
+  const daysUntilSaturday = day === 6 ? 0 : (6 - day + 7) % 7;
+  const saturday = new Date(today);
+  saturday.setDate(today.getDate() + daysUntilSaturday);
+  const sunday = new Date(saturday);
+  sunday.setDate(saturday.getDate() + 1);
+
+  return {
+    saturday,
+    sunday,
+  };
+}
+
 function formatStatusLabel(status: BackendOrder["status"]) {
   switch (status) {
     case "in-progress":
@@ -64,6 +104,17 @@ export default function BackendOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [actionMessage, setActionMessage] = useState("");
   const [updatingKey, setUpdatingKey] = useState("");
+  const { saturday, sunday } = getComingWeekend();
+  const saturdayKey = toDateKey(saturday);
+  const sundayKey = toDateKey(sunday);
+  const saturdayOrders = orders.filter((order) => {
+    const pickupDate = parsePickupDate(order.pickupDate);
+    return pickupDate && toDateKey(pickupDate) === saturdayKey && order.status !== "picked-up";
+  });
+  const sundayOrders = orders.filter((order) => {
+    const pickupDate = parsePickupDate(order.pickupDate);
+    return pickupDate && toDateKey(pickupDate) === sundayKey && order.status !== "picked-up";
+  });
 
   useEffect(() => {
     async function loadOrders() {
@@ -252,6 +303,92 @@ export default function BackendOrdersPage() {
             {actionMessage}
           </div>
         ) : null}
+
+        <section
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+            gap: "18px",
+          }}
+        >
+          {[
+            { label: formatPickupDayHeading(saturday), orders: saturdayOrders, accent: "#c47a45" },
+            { label: formatPickupDayHeading(sunday), orders: sundayOrders, accent: "#a6542d" },
+          ].map((day) => (
+            <article
+              key={day.label}
+              style={{
+                padding: "24px",
+                borderRadius: "26px",
+                background: "rgba(255, 250, 247, 0.96)",
+                border: "1px solid rgba(107, 68, 45, 0.12)",
+                boxShadow: "0 20px 60px rgba(113, 77, 54, 0.08)",
+                display: "grid",
+                gap: "14px",
+              }}
+            >
+              <div>
+                <p
+                  style={{
+                    color: day.accent,
+                    fontWeight: 800,
+                    letterSpacing: "0.18em",
+                    textTransform: "uppercase",
+                    marginBottom: "8px",
+                  }}
+                >
+                  This Coming Weekend
+                </p>
+                <h2 style={{ color: "#5f311c", fontFamily: "var(--font-display)", fontSize: "2rem", margin: 0 }}>
+                  {day.label}
+                </h2>
+                <p style={{ marginTop: "8px", color: "#6f5143", lineHeight: 1.6 }}>
+                  {day.orders.length > 0
+                    ? `${day.orders.length} order${day.orders.length === 1 ? "" : "s"} still need pickup attention.`
+                    : "No active pickups scheduled for this day."}
+                </p>
+              </div>
+
+              {day.orders.length > 0 ? (
+                <div style={{ display: "grid", gap: "12px" }}>
+                  {day.orders.map((order) => (
+                    <div
+                      key={`${day.label}-${order.type}-${order.id}`}
+                      style={{
+                        padding: "14px 16px",
+                        borderRadius: "18px",
+                        background: "rgba(248, 239, 228, 0.92)",
+                        border: "1px solid rgba(107, 68, 45, 0.08)",
+                        display: "grid",
+                        gap: "6px",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
+                        <strong style={{ color: "#64351e" }}>{order.customerName || "Order"}</strong>
+                        <span
+                          style={{
+                            padding: "6px 10px",
+                            borderRadius: "999px",
+                            background: statusPillBackground(order.status),
+                            color: "#64351e",
+                            fontWeight: 700,
+                            fontSize: "0.86rem",
+                          }}
+                        >
+                          {formatStatusLabel(order.status)}
+                        </span>
+                      </div>
+                      <span style={{ color: "#6f5143" }}>{order.orderSummary}</span>
+                      <span style={{ color: "#6f5143" }}>
+                        {order.paymentLabel} · {formatMoney(order.amountTotal, order.currency)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </article>
+          ))}
+        </section>
 
         {loading ? (
           <div

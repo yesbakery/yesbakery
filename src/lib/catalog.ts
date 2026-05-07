@@ -86,12 +86,12 @@ export const products: Product[] = [
 ];
 
 const spanishProductNames: Record<string, string> = {
-  [SOURDOUGH_ID]: "Masa Madre Clásica",
-  "sourdough-raspberry-white-chocolate": "Masa Madre con Frambuesa y Chocolate Blanco",
-  "sourdough-blueberry-cream-cheese": "Masa Madre con Arándano y Queso Crema",
-  "sourdough-multi-grain": "Masa Madre Multigrano",
-  "sourdough-double-chocolate-chocolate-chips": "Masa Madre con Doble Chocolate y Chispas de Chocolate",
-  "sourdough-jalapeno-cheddar": "Masa Madre con Jalapeño y Queso Cheddar",
+  [SOURDOUGH_ID]: "Pan de Masa Madre Clásico",
+  "sourdough-raspberry-white-chocolate": "Pan de Masa Madre con Frambuesa y Chocolate Blanco",
+  "sourdough-blueberry-cream-cheese": "Pan de Masa Madre con Arándano y Queso Crema",
+  "sourdough-multi-grain": "Pan de Masa Madre Multigrano",
+  "sourdough-double-chocolate-chocolate-chips": "Pan de Masa Madre con Doble Chocolate y Chispas de Chocolate",
+  "sourdough-jalapeno-cheddar": "Pan de Masa Madre con Jalapeño y Queso Cheddar",
   "quesadilla-salvadorena": "Quesadilla Salvadoreña",
   "cinnamon-rolls": "Rollos de Canela",
   empanada: "Empanada",

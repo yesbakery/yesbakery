@@ -63,16 +63,42 @@ export function AboutContent() {
         <div className={styles.storyCard}>
           <div className={styles.storyText}>
             <p className={styles.kicker}>{isSpanish ? "Sobre Nosotros" : "About Us"}</p>
-            <h2>{isSpanish ? "Horneado con cuidado, memoria y amor por compartir buena comida" : "Baked with care, memory, and a love for sharing good food"}</h2>
+            <h2>
+              {isSpanish
+                ? "Una historia de pasión, creatividad y momentos compartidos a través de la repostería"
+                : "A story of passion, creativity, and shared moments through baking"}
+            </h2>
             <p>
               {isSpanish
-                ? "Yes Bakery & More gira alrededor de panes cálidos, repostería para la mesa familiar y esa comodidad casera que invita a bajar el ritmo y reunirse."
-                : "Yes Bakery & More is built around warm breads, family-table pastries, and the kind of homemade comfort that invites people to slow down and gather."}
+                ? "Mi camino en la repostería comenzó hace más de 25 años con un amor sencillo por crear postres y compartirlos con las personas a mi alrededor."
+                : "My baking journey began over 25 years ago with a simple love for creating desserts and sharing them with the people around me."}
             </p>
             <p>
               {isSpanish
-                ? "La recogida se realiza en Union City, California. El envío puede revisarse caso por caso, según el producto y el destino."
-                : "Pickup is based in Union City, California. Shipping can be reviewed case by case, depending on the item and destination."}
+                ? "Lo que empezó como una pasión poco a poco se convirtió en algo mucho más grande: un espacio donde la creatividad, la comodidad y la felicidad se unen a través de la comida. Siempre he creído que hornear es más que hacer postres; se trata de crear momentos que la gente recuerda."
+                : "What started as a passion slowly became something much bigger — a place where creativity, comfort, and happiness come together through food. I’ve always believed that baking is more than just making desserts; it’s about creating moments people remember."}
+            </p>
+            <p>
+              {isSpanish
+                ? "Cada hora que paso en la cocina es algo que disfruto de verdad. Desde probar recetas hasta sacar productos recién horneados del horno, este negocio está construido con dedicación, corazón y un amor genuino por lo que hago."
+                : "Every hour spent in the kitchen is something I genuinely enjoy. From testing recipes to pulling fresh baked goods out of the oven, this business is built with dedication, heart, and a true love for what I do."}
+            </p>
+            <p>
+              {isSpanish
+                ? "En YesBakery, cada producto se hace con cuidado, atención al detalle y la esperanza de que cada bocado lleve un poco de felicidad al día de alguien."
+                : "At YesBakery, every product is made with care, attention to detail, and the hope that each bite brings a little happiness to someone’s day."}
+            </p>
+            <p>
+              {isSpanish
+                ? "Gracias por estar aquí, por apoyar mi pequeño negocio y por permitirme compartir con usted algo que realmente amo."
+                : "Thank you for being here, supporting my small business, and allowing me to share something I truly love with you."}
+            </p>
+            <p>
+              <strong>
+                {isSpanish
+                  ? "— Yessica Gonzalez, Fundadora de YesBakery"
+                  : "— Yessica Gonzalez, Founder of YesBakery"}
+              </strong>
             </p>
           </div>
 
