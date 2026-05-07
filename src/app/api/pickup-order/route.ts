@@ -122,6 +122,27 @@ export async function POST(request: NextRequest) {
   );
 
   try {
+    const recorded = await recordPickupOrder({
+      orderId,
+      fullName,
+      email,
+      phone,
+      pickupDate,
+      orderSummary,
+      notes,
+      totalDue,
+      createdAt: new Date().toISOString(),
+    });
+
+    if (!recorded) {
+      return badRequest("This pickup order was already recorded.", 409);
+    }
+  } catch (recordError) {
+    console.error("Pickup order could not be recorded in storage.", recordError);
+    return badRequest("We couldn't save your pickup order right now. Please try again.", 500);
+  }
+
+  try {
     await resend.emails.send({
       from: resendFromEmail,
       to: "yesbakery@gmail.com",
@@ -162,24 +183,8 @@ export async function POST(request: NextRequest) {
         ${notes ? `<p><strong>Order notes:</strong> ${notes.replace(/\n/g, "<br />")}</p>` : ""}
       `,
     });
-
-    try {
-      await recordPickupOrder({
-        orderId,
-        fullName,
-        email,
-        phone,
-        pickupDate,
-        orderSummary,
-        notes,
-        totalDue,
-        createdAt: new Date().toISOString(),
-      });
-    } catch (recordError) {
-      console.error("Pickup order could not be recorded in storage.", recordError);
-    }
-  } catch {
-    return badRequest("We couldn't place your pickup order right now. Please try again.", 500);
+  } catch (emailError) {
+    console.error("Pickup order was saved, but email delivery failed.", emailError);
   }
 
   return NextResponse.json({ ok: true, orderId });

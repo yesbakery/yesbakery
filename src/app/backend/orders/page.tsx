@@ -141,20 +141,37 @@ export default function BackendOrdersPage() {
   const [pickupFilter, setPickupFilter] = useState<PickupFilter>("all");
   const [selectedOrderKeys, setSelectedOrderKeys] = useState<string[]>([]);
 
-  useEffect(() => {
-    async function loadOrders() {
-      setLoading(true);
+  async function loadOrders() {
+    try {
+      const response = await fetch("/api/admin/orders", {
+        cache: "no-store",
+      });
+      const payload = (await response.json()) as { orders?: BackendOrder[] };
+      setOrders(Array.isArray(payload.orders) ? payload.orders : []);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-      try {
-        const response = await fetch("/api/admin/orders");
-        const payload = (await response.json()) as { orders?: BackendOrder[] };
-        setOrders(Array.isArray(payload.orders) ? payload.orders : []);
-      } finally {
-        setLoading(false);
-      }
+  useEffect(() => {
+    void loadOrders();
+
+    const intervalId = window.setInterval(() => {
+      void loadOrders();
+    }, 15000);
+
+    function refreshOnFocus() {
+      void loadOrders();
     }
 
-    void loadOrders();
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnFocus);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnFocus);
+    };
   }, []);
 
   const filteredOrders = useMemo(() => {

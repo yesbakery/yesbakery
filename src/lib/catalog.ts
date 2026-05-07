@@ -71,7 +71,7 @@ export const products: Product[] = [
     id: "empanada",
     name: "Empanada",
     price: 3,
-    description: "Golden pastry with a flaky finish that feels comforting, simple, and freshly baked.",
+    description: "Golden pastry filled with Cajeta, a rich Mexican caramel, wrapped in a flaky freshly baked crust.",
     image: "/assets/products/empanadas.PNG",
     minimumQuantity: 4,
   },
@@ -114,7 +114,8 @@ const spanishProductDescriptions: Record<string, string> = {
   "quesadilla-salvadorena":
     "Un clásico salvadoreño con interior suave y abundante, coronado con una superficie dorada con ajonjolí.",
   "cinnamon-rolls": "Espirales tiernas con el calor de la canela, horneadas hasta quedar doradas y hermosas.",
-  empanada: "Pastel dorado con un acabado hojaldrado que se siente reconfortante, simple y recién horneado.",
+  empanada:
+    "Pastel dorado relleno de cajeta, un caramelo mexicano delicioso, con un acabado hojaldrado y recién horneado.",
   "tropical-paradise-jam":
     "Una mermelada de 4 onzas con piña, mango, fresas, cereza y frambuesa para una mezcla brillante y frutal.",
 };
