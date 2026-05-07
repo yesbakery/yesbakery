@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { recordPaidOrder } from "../../../../lib/paid-orders";
 import { getStripeServerClient } from "../../../../lib/stripe-config";
 
 function badRequest(message: string, status = 400) {
@@ -24,6 +25,22 @@ export async function GET(request: NextRequest) {
       limit: 100,
       expand: ["data.price.product"],
     });
+
+    if (session.payment_status === "paid") {
+      await recordPaidOrder({
+        sessionId: session.id,
+        amountTotal: session.amount_total || 0,
+        currency: session.currency || "usd",
+        paymentStatus: session.payment_status || "unknown",
+        customerEmail: session.customer_details?.email || session.customer_email || "",
+        customerName: session.metadata?.customer_name || session.customer_details?.name || "",
+        phone: session.metadata?.phone || session.customer_details?.phone || "",
+        pickupDate: session.metadata?.pickup_date || "",
+        orderSummary: session.metadata?.order_summary || "",
+        notes: session.metadata?.notes || "",
+        createdAt: new Date().toISOString(),
+      });
+    }
 
     return NextResponse.json({
       sessionId: session.id,

@@ -146,6 +146,7 @@ export async function POST(request: NextRequest) {
     await resend.emails.send({
       from: resendFromEmail,
       to: email,
+      replyTo: "yesbakery@gmail.com",
       subject: `Your Yes Bakery pickup order ${orderId}`,
       html: `
         <h2>Thank you, ${fullName}.</h2>

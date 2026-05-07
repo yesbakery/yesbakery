@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
       await resend.emails.send({
         from: resendFromEmail,
         to: customerEmail,
+        replyTo: "yesbakery@gmail.com",
         subject: "Your Yes Bakery order is confirmed",
         html: `
           <h2>Thank you for your order${customerName ? `, ${customerName}` : ""}.</h2>

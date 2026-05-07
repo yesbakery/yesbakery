@@ -24,8 +24,8 @@
     "notes": "Recovered from email log export. Order items, pickup date, phone number, and total were not included in the export.",
     "totalDue": 0,
     "createdAt": "2026-05-06 19:43:24.843267+00",
-    "status": "new",
-    "statusUpdatedAt": "2026-05-06 19:43:24.843267+00",
+    "status": "done",
+    "statusUpdatedAt": "2026-05-07T18:52:55.080Z",
     "pickedUpAt": "",
     "followUpEmailSentAt": ""
   },
@@ -39,10 +39,10 @@
     "notes": "Recovered from email log export. Order items, pickup date, phone number, and total were not included in the export.",
     "totalDue": 0,
     "createdAt": "2026-05-06 19:14:59.318488+00",
-    "status": "new",
-    "statusUpdatedAt": "2026-05-06 19:14:59.318488+00",
-    "pickedUpAt": "",
-    "followUpEmailSentAt": ""
+    "status": "picked-up",
+    "statusUpdatedAt": "2026-05-07T18:53:38.469Z",
+    "pickedUpAt": "2026-05-07T18:53:38.469Z",
+    "followUpEmailSentAt": "2026-05-07T18:53:38.469Z"
   },
   {
     "orderId": "YP-MOTQ8QDW",

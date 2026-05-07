@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
     await resend.emails.send({
       from: resendFromEmail,
       to: existingRecord.email,
+      replyTo: "yesbakery@gmail.com",
       subject: "Your Yes Bakery shipping request has been approved",
       html: `
         <h2>Hello ${existingRecord.fullName},</h2>

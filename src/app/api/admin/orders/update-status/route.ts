@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { Resend } from "resend";
 import {
   getSuggestedProducts,
@@ -12,6 +14,25 @@ type Payload = {
   id?: string;
   type?: UnifiedOrder["type"];
   status?: OrderStatus;
+};
+
+const EMAIL_LOGO_PATH = "/assets/email/logo.png";
+
+const EMAIL_PRODUCT_IMAGE_PATHS: Record<string, string> = {
+  "/assets/products/sourdough/sour_dough-plain.PNG": "/assets/email/products/sourdough/sour_dough-plain.PNG",
+  "/assets/products/sourdough/raspberry_white_chocolate_20260505.jpg":
+    "/assets/email/products/sourdough/raspberry_white_chocolate_20260505.jpg",
+  "/assets/products/sourdough/Blueberries_Cream_Cheese.jpg":
+    "/assets/email/products/sourdough/Blueberries_Cream_Cheese.jpg",
+  "/assets/products/sourdough/multi-grain.jpg": "/assets/email/products/sourdough/multi-grain.jpg",
+  "/assets/products/sourdough/Double_Chocolate_with_Chocolate_Chips.jpg":
+    "/assets/email/products/sourdough/Double_Chocolate_with_Chocolate_Chips.jpg",
+  "/assets/products/sourdough/jalapeno_and_Cheddar-Cheese.PNG":
+    "/assets/email/products/sourdough/jalapeno_and_Cheddar-Cheese.PNG",
+  "/assets/products/quesadilla_salvadorena.PNG": "/assets/email/products/quesadilla_salvadorena.PNG",
+  "/assets/products/cinnamon.jpg": "/assets/email/products/cinnamon.jpg",
+  "/assets/products/empanadas.PNG": "/assets/email/products/empanadas.PNG",
+  "/assets/products/jams.PNG": "/assets/email/products/jams.PNG",
 };
 
 function clean(value: unknown) {
@@ -38,17 +59,43 @@ function formatMoney(amount: number, currency: string) {
   }).format(amount / 100);
 }
 
-function getBaseUrl(request: NextRequest) {
-  const forwardedProto = request.headers.get("x-forwarded-proto") || "https";
-  const forwardedHost = request.headers.get("x-forwarded-host") || request.headers.get("host") || "";
-  if (forwardedHost) {
-    return `${forwardedProto}://${forwardedHost}`;
-  }
+function getContentType(assetPath: string) {
+  const extension = path.extname(assetPath).toLowerCase();
 
-  return process.env.NEXT_PUBLIC_SITE_URL?.trim() || "";
+  switch (extension) {
+    case ".jpg":
+    case ".jpeg":
+      return "image/jpeg";
+    case ".png":
+      return "image/png";
+    case ".webp":
+      return "image/webp";
+    default:
+      return "application/octet-stream";
+  }
 }
 
-async function sendPickedUpEmail(request: NextRequest, order: UnifiedOrder) {
+async function buildInlineImageAttachment(publicAssetPath: string, contentId: string) {
+  try {
+    const assetPath = path.join(process.cwd(), "public", publicAssetPath.replace(/^\//, ""));
+    const content = await readFile(assetPath);
+
+    return {
+      attachment: {
+        content: content.toString("base64"),
+        contentId,
+        contentType: getContentType(publicAssetPath),
+        filename: path.basename(publicAssetPath),
+      },
+      src: `cid:${contentId}`,
+    };
+  } catch (error) {
+    console.error(`Unable to load email image asset: ${publicAssetPath}`, error);
+    return null;
+  }
+}
+
+async function sendPickedUpEmail(order: UnifiedOrder) {
   const resendApiKey = process.env.RESEND_API_KEY?.trim() || "";
   const resendFromEmail = process.env.RESEND_FROM_EMAIL?.trim() || "onboarding@resend.dev";
 
@@ -56,21 +103,56 @@ async function sendPickedUpEmail(request: NextRequest, order: UnifiedOrder) {
     return;
   }
 
-  const baseUrl = getBaseUrl(request);
-  const logoUrl = baseUrl ? `${baseUrl}/assets/new_logo.PNG` : "";
   const suggestions = getSuggestedProducts(order.orderSummary);
   const resend = new Resend(resendApiKey);
+  const logoImage = await buildInlineImageAttachment(EMAIL_LOGO_PATH, "yesbakery-logo");
+  const suggestionImages = await Promise.all(
+    suggestions.map(async (product, index) => {
+      const image = await buildInlineImageAttachment(
+        EMAIL_PRODUCT_IMAGE_PATHS[product.image] || product.image,
+        `recommended-product-${index + 1}`,
+      );
+
+      return {
+        image,
+        product,
+      };
+    }),
+  );
+  const suggestionsMarkup = suggestionImages
+    .map(({ image, product }) => {
+      return `
+        <div style="display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 14px; align-items: center; padding: 14px; border-radius: 18px; background: #fffaf7; border: 1px solid rgba(107, 68, 45, 0.08); margin-top: 12px;">
+          ${
+            image?.src
+              ? `<img src="${image.src}" alt="${product.name}" style="width: 104px; height: 104px; object-fit: cover; border-radius: 14px; display: block;" />`
+              : ""
+          }
+          <div>
+            <p style="margin: 0 0 6px; font-weight: 700; color: #5f311c;">${product.name}</p>
+            <p style="margin: 0; color: #6f5143; line-height: 1.6;">${product.description}</p>
+            <p style="margin: 8px 0 0; color: #a6542d; font-weight: 700;">${formatMoney(product.price * 100, "usd")}</p>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+  const emailAttachments = [logoImage, ...suggestionImages]
+    .map((item) => item?.image?.attachment || item?.attachment)
+    .filter(Boolean);
 
   await resend.emails.send({
+    attachments: emailAttachments,
     from: resendFromEmail,
     to: order.customerEmail,
+    replyTo: "yesbakery@gmail.com",
     subject: "Thank you for picking up your Yes Bakery order",
     html: `
       <div style="font-family: Georgia, serif; background: #fbf3ef; padding: 32px; color: #4f2c1a;">
         <div style="max-width: 640px; margin: 0 auto; background: #fffaf7; border-radius: 24px; padding: 28px; border: 1px solid rgba(107, 68, 45, 0.12);">
           ${
-            logoUrl
-              ? `<div style="text-align:center; margin-bottom: 20px;"><img src="${logoUrl}" alt="Yes Bakery & More logo" style="width: 220px; max-width: 100%; height: auto;" /></div>`
+            logoImage?.src
+              ? `<div style="text-align:center; margin-bottom: 20px;"><img src="${logoImage.src}" alt="Yes Bakery & More logo" style="width: 220px; max-width: 100%; height: auto; display: inline-block;" /></div>`
               : ""
           }
           <h2 style="font-size: 32px; margin: 0 0 14px; color: #5f311c;">Thank you${order.customerName ? `, ${order.customerName}` : ""}.</h2>
@@ -87,11 +169,7 @@ async function sendPickedUpEmail(request: NextRequest, order: UnifiedOrder) {
               ? `
                 <div style="margin-top: 24px; padding: 18px; border-radius: 18px; background: #f8eee7;">
                   <p style="margin: 0 0 10px; font-weight: 700; color: #5f311c;">For your next order, you might enjoy:</p>
-                  <ul style="margin: 0; padding-left: 20px; color: #6f5143; line-height: 1.7;">
-                    ${suggestions
-                      .map((product) => `<li><strong style="color:#5f311c;">${product.name}</strong> — ${product.description}</li>`)
-                      .join("")}
-                  </ul>
+                  ${suggestionsMarkup}
                 </div>
               `
               : ""
@@ -147,7 +225,7 @@ export async function POST(request: NextRequest) {
     let followUpEmailSent = false;
 
     if (status === "picked-up" && !existingOrder.followUpEmailSentAt) {
-      await sendPickedUpEmail(request, updatedOrder);
+      await sendPickedUpEmail(updatedOrder);
       await updateUnifiedOrder(type, id, {
         followUpEmailSentAt: now,
       });
