@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type BackendOrder = {
   id: string;
@@ -20,6 +20,10 @@ type BackendOrder = {
   pickedUpAt: string;
   followUpEmailSentAt: string;
 };
+
+type OrderStatus = BackendOrder["status"];
+type OrderTypeFilter = "all" | BackendOrder["type"];
+type PickupFilter = "all" | "coming-weekend" | "future" | "no-date";
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -49,14 +53,6 @@ function toDateKey(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-function formatPickupDayHeading(date: Date) {
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  }).format(date);
-}
-
 function getComingWeekend() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -68,12 +64,13 @@ function getComingWeekend() {
   sunday.setDate(saturday.getDate() + 1);
 
   return {
-    saturday,
-    sunday,
+    saturdayKey: toDateKey(saturday),
+    sundayKey: toDateKey(sunday),
+    today,
   };
 }
 
-function formatStatusLabel(status: BackendOrder["status"]) {
+function formatStatusLabel(status: OrderStatus) {
   switch (status) {
     case "in-progress":
       return "In Progress";
@@ -86,7 +83,7 @@ function formatStatusLabel(status: BackendOrder["status"]) {
   }
 }
 
-function statusPillBackground(status: BackendOrder["status"]) {
+function statusPillBackground(status: OrderStatus) {
   switch (status) {
     case "picked-up":
       return "#dcefdc";
@@ -99,22 +96,36 @@ function statusPillBackground(status: BackendOrder["status"]) {
   }
 }
 
+function typeLabel(type: BackendOrder["type"]) {
+  return type === "paid-online" ? "Paid Online" : "Pay at Pickup";
+}
+
+function buildOrderKey(order: BackendOrder) {
+  return `${order.type}:${order.id}`;
+}
+
+function buttonStyle(active = false) {
+  return {
+    padding: "10px 14px",
+    borderRadius: "999px",
+    border: active ? "0" : "1px solid rgba(107, 68, 45, 0.12)",
+    background: active ? "linear-gradient(135deg, #c47a45, #a6542d)" : "rgba(255, 243, 236, 0.9)",
+    color: active ? "#fff8f4" : "#64351e",
+    fontWeight: 700,
+    cursor: "pointer",
+  } as const;
+}
+
 export default function BackendOrdersPage() {
   const [orders, setOrders] = useState<BackendOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionMessage, setActionMessage] = useState("");
   const [updatingKey, setUpdatingKey] = useState("");
-  const { saturday, sunday } = getComingWeekend();
-  const saturdayKey = toDateKey(saturday);
-  const sundayKey = toDateKey(sunday);
-  const saturdayOrders = orders.filter((order) => {
-    const pickupDate = parsePickupDate(order.pickupDate);
-    return pickupDate && toDateKey(pickupDate) === saturdayKey && order.status !== "picked-up";
-  });
-  const sundayOrders = orders.filter((order) => {
-    const pickupDate = parsePickupDate(order.pickupDate);
-    return pickupDate && toDateKey(pickupDate) === sundayKey && order.status !== "picked-up";
-  });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | OrderStatus>("all");
+  const [typeFilter, setTypeFilter] = useState<OrderTypeFilter>("all");
+  const [pickupFilter, setPickupFilter] = useState<PickupFilter>("all");
+  const [selectedOrderKeys, setSelectedOrderKeys] = useState<string[]>([]);
 
   useEffect(() => {
     async function loadOrders() {
@@ -131,6 +142,66 @@ export default function BackendOrdersPage() {
 
     void loadOrders();
   }, []);
+
+  const filteredOrders = useMemo(() => {
+    const { saturdayKey, sundayKey, today } = getComingWeekend();
+    const normalizedSearch = searchQuery.trim().toLowerCase();
+
+    return orders.filter((order) => {
+      if (statusFilter !== "all" && order.status !== statusFilter) {
+        return false;
+      }
+
+      if (typeFilter !== "all" && order.type !== typeFilter) {
+        return false;
+      }
+
+      const pickupDate = parsePickupDate(order.pickupDate);
+      const pickupDateKey = pickupDate ? toDateKey(pickupDate) : "";
+
+      if (pickupFilter === "coming-weekend" && pickupDateKey !== saturdayKey && pickupDateKey !== sundayKey) {
+        return false;
+      }
+
+      if (pickupFilter === "future") {
+        if (!pickupDate) {
+          return false;
+        }
+
+        const normalizedPickupDate = new Date(pickupDate);
+        normalizedPickupDate.setHours(0, 0, 0, 0);
+        if (normalizedPickupDate < today) {
+          return false;
+        }
+      }
+
+      if (pickupFilter === "no-date" && pickupDate) {
+        return false;
+      }
+
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      const haystack = [
+        order.id,
+        order.customerName,
+        order.customerEmail,
+        order.phone,
+        order.pickupDate,
+        order.orderSummary,
+        order.notes,
+        order.paymentLabel,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(normalizedSearch);
+    });
+  }, [orders, pickupFilter, searchQuery, statusFilter, typeFilter]);
+
+  const selectedFilteredOrders = filteredOrders.filter((order) => selectedOrderKeys.includes(buildOrderKey(order)));
+  const allFilteredSelected = filteredOrders.length > 0 && selectedFilteredOrders.length === filteredOrders.length;
 
   function printOrder(order: BackendOrder) {
     const popup = window.open("", "_blank", "width=760,height=900");
@@ -172,7 +243,7 @@ export default function BackendOrdersPage() {
     popup.print();
   }
 
-  async function updateStatus(order: BackendOrder, status: BackendOrder["status"]) {
+  async function updateStatus(order: BackendOrder, status: OrderStatus) {
     setActionMessage("");
     setUpdatingKey(`${order.type}:${order.id}:${status}`);
 
@@ -213,6 +284,78 @@ export default function BackendOrdersPage() {
     }
   }
 
+  async function updateMultipleStatuses(status: OrderStatus) {
+    if (selectedFilteredOrders.length === 0) {
+      setActionMessage("Select at least one order first.");
+      return;
+    }
+
+    setActionMessage("");
+    setUpdatingKey(`batch:${status}`);
+
+    try {
+      const updates = await Promise.all(
+        selectedFilteredOrders.map(async (order) => {
+          const response = await fetch("/api/admin/orders/update-status", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              id: order.id,
+              type: order.type,
+              status,
+            }),
+          });
+
+          const payload = (await response.json()) as { error?: string; order?: BackendOrder };
+
+          if (!response.ok || !payload.order) {
+            throw new Error(payload.error || `Order ${order.id} could not be updated.`);
+          }
+
+          return payload.order;
+        }),
+      );
+
+      const updatesByKey = new Map(updates.map((order) => [buildOrderKey(order), order]));
+
+      setOrders((currentOrders) =>
+        currentOrders.map((order) => updatesByKey.get(buildOrderKey(order)) || order),
+      );
+
+      setSelectedOrderKeys([]);
+      setActionMessage(
+        status === "picked-up"
+          ? `${updates.length} order${updates.length === 1 ? "" : "s"} marked as picked up.`
+          : `${updates.length} order${updates.length === 1 ? "" : "s"} marked as ${formatStatusLabel(status).toLowerCase()}.`,
+      );
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : "Selected orders could not be updated.");
+    } finally {
+      setUpdatingKey("");
+    }
+  }
+
+  function toggleOrderSelection(order: BackendOrder) {
+    const orderKey = buildOrderKey(order);
+    setSelectedOrderKeys((current) =>
+      current.includes(orderKey) ? current.filter((entry) => entry !== orderKey) : [...current, orderKey],
+    );
+  }
+
+  function toggleSelectAllFiltered() {
+    if (allFilteredSelected) {
+      const filteredKeys = new Set(filteredOrders.map(buildOrderKey));
+      setSelectedOrderKeys((current) => current.filter((entry) => !filteredKeys.has(entry)));
+      return;
+    }
+
+    const merged = new Set(selectedOrderKeys);
+    filteredOrders.forEach((order) => merged.add(buildOrderKey(order)));
+    setSelectedOrderKeys([...merged]);
+  }
+
   async function logout() {
     await fetch("/api/admin/logout", { method: "POST" });
     window.location.href = "/backend/login";
@@ -226,7 +369,7 @@ export default function BackendOrdersPage() {
         background: "linear-gradient(180deg, #fbf3ef 0%, #f7eadf 50%, #fff8f2 100%)",
       }}
     >
-      <div style={{ width: "min(1200px, 100%)", margin: "0 auto", display: "grid", gap: "18px" }}>
+      <div style={{ width: "min(1320px, 100%)", margin: "0 auto", display: "grid", gap: "18px" }}>
         <header
           style={{
             padding: "28px 32px",
@@ -243,7 +386,7 @@ export default function BackendOrdersPage() {
             Orders
           </h1>
           <p style={{ marginTop: "12px", color: "#6f5143", lineHeight: 1.7 }}>
-            View paid online orders and pay-at-pickup orders in one place.
+            View every order in one list, filter the queue, and manage several orders at once.
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginTop: "18px" }}>
             <a
@@ -272,19 +415,7 @@ export default function BackendOrdersPage() {
             >
               Shipping Requests
             </a>
-            <button
-              type="button"
-              onClick={logout}
-              style={{
-                padding: "11px 16px",
-                borderRadius: "999px",
-                border: 0,
-                background: "rgba(255, 243, 236, 0.9)",
-                color: "#64351e",
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-            >
+            <button type="button" onClick={logout} style={buttonStyle()}>
               Sign Out
             </button>
           </div>
@@ -306,282 +437,349 @@ export default function BackendOrdersPage() {
 
         <section
           style={{
+            padding: "24px",
+            borderRadius: "26px",
+            background: "rgba(255, 250, 247, 0.96)",
+            border: "1px solid rgba(107, 68, 45, 0.12)",
+            boxShadow: "0 20px 60px rgba(113, 77, 54, 0.08)",
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
             gap: "18px",
           }}
         >
-          {[
-            { label: formatPickupDayHeading(saturday), orders: saturdayOrders, accent: "#c47a45" },
-            { label: formatPickupDayHeading(sunday), orders: sundayOrders, accent: "#a6542d" },
-          ].map((day) => (
-            <article
-              key={day.label}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", justifyContent: "space-between" }}>
+            <div>
+              <h2 style={{ color: "#5f311c", fontFamily: "var(--font-display)", fontSize: "2rem", margin: 0 }}>
+                Order List
+              </h2>
+              <p style={{ marginTop: "8px", color: "#6f5143", lineHeight: 1.6 }}>
+                {filteredOrders.length} visible order{filteredOrders.length === 1 ? "" : "s"} · {selectedFilteredOrders.length} selected
+              </p>
+            </div>
+
+            <div
               style={{
-                padding: "24px",
-                borderRadius: "26px",
-                background: "rgba(255, 250, 247, 0.96)",
-                border: "1px solid rgba(107, 68, 45, 0.12)",
-                boxShadow: "0 20px 60px rgba(113, 77, 54, 0.08)",
                 display: "grid",
-                gap: "14px",
+                gap: "10px",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                width: "min(820px, 100%)",
               }}
             >
-              <div>
-                <p
-                  style={{
-                    color: day.accent,
-                    fontWeight: 800,
-                    letterSpacing: "0.18em",
-                    textTransform: "uppercase",
-                    marginBottom: "8px",
-                  }}
-                >
-                  This Coming Weekend
-                </p>
-                <h2 style={{ color: "#5f311c", fontFamily: "var(--font-display)", fontSize: "2rem", margin: 0 }}>
-                  {day.label}
-                </h2>
-                <p style={{ marginTop: "8px", color: "#6f5143", lineHeight: 1.6 }}>
-                  {day.orders.length > 0
-                    ? `${day.orders.length} order${day.orders.length === 1 ? "" : "s"} still need pickup attention.`
-                    : "No active pickups scheduled for this day."}
-                </p>
-              </div>
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search name, email, notes, or order ID"
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: "16px",
+                  border: "1px solid rgba(107, 68, 45, 0.14)",
+                  background: "rgba(255, 255, 255, 0.86)",
+                  color: "#4f2c1a",
+                }}
+              />
 
-              {day.orders.length > 0 ? (
-                <div style={{ display: "grid", gap: "12px" }}>
-                  {day.orders.map((order) => (
-                    <div
-                      key={`${day.label}-${order.type}-${order.id}`}
-                      style={{
-                        padding: "14px 16px",
-                        borderRadius: "18px",
-                        background: "rgba(248, 239, 228, 0.92)",
-                        border: "1px solid rgba(107, 68, 45, 0.08)",
-                        display: "grid",
-                        gap: "6px",
-                      }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
-                        <strong style={{ color: "#64351e" }}>{order.customerName || "Order"}</strong>
-                        <span
-                          style={{
-                            padding: "6px 10px",
-                            borderRadius: "999px",
-                            background: statusPillBackground(order.status),
-                            color: "#64351e",
-                            fontWeight: 700,
-                            fontSize: "0.86rem",
-                          }}
-                        >
-                          {formatStatusLabel(order.status)}
-                        </span>
-                      </div>
-                      <span style={{ color: "#6f5143" }}>{order.orderSummary}</span>
-                      <span style={{ color: "#6f5143" }}>
-                        {order.paymentLabel} · {formatMoney(order.amountTotal, order.currency)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-            </article>
-          ))}
-        </section>
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value as "all" | OrderStatus)}
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: "16px",
+                  border: "1px solid rgba(107, 68, 45, 0.14)",
+                  background: "rgba(255, 255, 255, 0.86)",
+                  color: "#4f2c1a",
+                }}
+              >
+                <option value="all">All Statuses</option>
+                <option value="new">New</option>
+                <option value="in-progress">In Progress</option>
+                <option value="done">Done</option>
+                <option value="picked-up">Picked Up</option>
+              </select>
 
-        {loading ? (
+              <select
+                value={typeFilter}
+                onChange={(event) => setTypeFilter(event.target.value as OrderTypeFilter)}
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: "16px",
+                  border: "1px solid rgba(107, 68, 45, 0.14)",
+                  background: "rgba(255, 255, 255, 0.86)",
+                  color: "#4f2c1a",
+                }}
+              >
+                <option value="all">All Payment Types</option>
+                <option value="paid-online">Paid Online</option>
+                <option value="pay-at-pickup">Pay at Pickup</option>
+              </select>
+
+              <select
+                value={pickupFilter}
+                onChange={(event) => setPickupFilter(event.target.value as PickupFilter)}
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: "16px",
+                  border: "1px solid rgba(107, 68, 45, 0.14)",
+                  background: "rgba(255, 255, 255, 0.86)",
+                  color: "#4f2c1a",
+                }}
+              >
+                <option value="all">All Pickup Dates</option>
+                <option value="coming-weekend">Coming Weekend</option>
+                <option value="future">Today or Future</option>
+                <option value="no-date">No Pickup Date</option>
+              </select>
+            </div>
+          </div>
+
           <div
             style={{
-              padding: "24px",
-              borderRadius: "24px",
-              background: "rgba(255, 250, 247, 0.96)",
-              border: "1px solid rgba(107, 68, 45, 0.12)",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "10px",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "14px 16px",
+              borderRadius: "18px",
+              background: "rgba(248, 239, 228, 0.92)",
+              border: "1px solid rgba(107, 68, 45, 0.08)",
             }}
           >
-            Loading orders...
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
+              <button type="button" onClick={toggleSelectAllFiltered} style={buttonStyle()}>
+                {allFilteredSelected ? "Clear Visible Selection" : "Select All Visible"}
+              </button>
+              <button
+                type="button"
+                onClick={() => updateMultipleStatuses("in-progress")}
+                disabled={selectedFilteredOrders.length === 0 || updatingKey.startsWith("batch:")}
+                style={buttonStyle()}
+              >
+                Mark In Progress
+              </button>
+              <button
+                type="button"
+                onClick={() => updateMultipleStatuses("done")}
+                disabled={selectedFilteredOrders.length === 0 || updatingKey.startsWith("batch:")}
+                style={buttonStyle()}
+              >
+                Mark Done
+              </button>
+              <button
+                type="button"
+                onClick={() => updateMultipleStatuses("picked-up")}
+                disabled={selectedFilteredOrders.length === 0 || updatingKey.startsWith("batch:")}
+                style={buttonStyle()}
+              >
+                Mark Picked Up
+              </button>
+            </div>
+
+            <div style={{ color: "#6f5143", fontWeight: 700 }}>
+              {selectedFilteredOrders.length > 0
+                ? `${selectedFilteredOrders.length} selected`
+                : "Select orders to use batch actions"}
+            </div>
           </div>
-        ) : orders.length === 0 ? (
-          <div
-            style={{
-              padding: "24px",
-              borderRadius: "24px",
-              background: "rgba(255, 250, 247, 0.96)",
-              border: "1px solid rgba(107, 68, 45, 0.12)",
-            }}
-          >
-            No orders yet.
-          </div>
-        ) : (
-          orders.map((order) => (
-            <article
-              key={`${order.type}-${order.id}`}
+
+          {loading ? (
+            <div
               style={{
                 padding: "24px",
-                borderRadius: "26px",
+                borderRadius: "22px",
                 background: "rgba(255, 250, 247, 0.96)",
                 border: "1px solid rgba(107, 68, 45, 0.12)",
-                boxShadow: "0 20px 60px rgba(113, 77, 54, 0.08)",
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "12px",
-                  marginBottom: "16px",
-                }}
-              >
-                <div>
-                  <h2 style={{ color: "#5f311c", fontFamily: "var(--font-display)", fontSize: "2rem" }}>
-                    {order.customerName || "Order"}
-                  </h2>
-                  <p style={{ color: "#6f5143" }}>{order.customerEmail}</p>
-                </div>
-                <span
-                  style={{
-                    padding: "8px 14px",
-                    borderRadius: "999px",
-                    background: statusPillBackground(order.status),
-                    color: "#64351e",
-                    fontWeight: 800,
-                  }}
-                >
-                  {formatStatusLabel(order.status)}
-                </span>
-              </div>
+              Loading orders...
+            </div>
+          ) : filteredOrders.length === 0 ? (
+            <div
+              style={{
+                padding: "24px",
+                borderRadius: "22px",
+                background: "rgba(255, 250, 247, 0.96)",
+                border: "1px solid rgba(107, 68, 45, 0.12)",
+              }}
+            >
+              No orders match the current filters.
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: "14px" }}>
+              {filteredOrders.map((order) => {
+                const orderKey = buildOrderKey(order);
+                const isSelected = selectedOrderKeys.includes(orderKey);
 
-              <div style={{ display: "grid", gap: "8px", color: "#6f5143", lineHeight: 1.7 }}>
-                <p>
-                  <strong style={{ color: "#64351e" }}>Order ID:</strong> {order.id}
-                </p>
-                <p>
-                  <strong style={{ color: "#64351e" }}>Phone:</strong> {order.phone || "Not provided"}
-                </p>
-                <p>
-                  <strong style={{ color: "#64351e" }}>Pickup date:</strong> {order.pickupDate}
-                </p>
-                <p>
-                  <strong style={{ color: "#64351e" }}>Payment:</strong> {order.paymentLabel}
-                </p>
-                <p>
-                  <strong style={{ color: "#64351e" }}>Submitted:</strong> {formatDate(order.createdAt)}
-                </p>
-                <p>
-                  <strong style={{ color: "#64351e" }}>Last updated:</strong> {formatDate(order.statusUpdatedAt)}
-                </p>
-                <p>
-                  <strong style={{ color: "#64351e" }}>Items:</strong> {order.orderSummary}
-                </p>
-                <p>
-                  <strong style={{ color: "#64351e" }}>Total:</strong> {formatMoney(order.amountTotal, order.currency)}
-                </p>
-                {order.followUpEmailSentAt ? (
-                  <p>
-                    <strong style={{ color: "#64351e" }}>Thank-you email:</strong> Sent {formatDate(order.followUpEmailSentAt)}
-                  </p>
-                ) : null}
-                {order.notes ? (
-                  <p>
-                    <strong style={{ color: "#64351e" }}>Notes:</strong> {order.notes}
-                  </p>
-                ) : null}
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "10px",
-                  marginTop: "18px",
-                }}
-              >
-                <a
-                  href={`mailto:${order.customerEmail}?subject=${encodeURIComponent(`Yes Bakery order ${order.id}`)}`}
-                  style={{
-                    padding: "10px 14px",
-                    borderRadius: "999px",
-                    textDecoration: "none",
-                    background: "rgba(255, 243, 236, 0.9)",
-                    color: "#64351e",
-                    fontWeight: 700,
-                  }}
-                >
-                  Email Customer
-                </a>
-                {order.phone ? (
-                  <a
-                    href={`tel:${order.phone}`}
+                return (
+                  <article
+                    key={orderKey}
                     style={{
-                      padding: "10px 14px",
-                      borderRadius: "999px",
-                      textDecoration: "none",
-                      background: "rgba(255, 243, 236, 0.9)",
-                      color: "#64351e",
-                      fontWeight: 700,
+                      padding: "20px",
+                      borderRadius: "22px",
+                      background: isSelected ? "rgba(250, 233, 219, 0.95)" : "rgba(255, 250, 247, 0.96)",
+                      border: isSelected
+                        ? "1px solid rgba(166, 84, 45, 0.28)"
+                        : "1px solid rgba(107, 68, 45, 0.12)",
+                      boxShadow: "0 18px 48px rgba(113, 77, 54, 0.08)",
+                      display: "grid",
+                      gap: "14px",
                     }}
                   >
-                    Call Customer
-                  </a>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => printOrder(order)}
-                  style={{
-                    padding: "10px 14px",
-                    borderRadius: "999px",
-                    border: 0,
-                    background: "rgba(255, 243, 236, 0.9)",
-                    color: "#64351e",
-                    fontWeight: 700,
-                    cursor: "pointer",
-                  }}
-                >
-                  Print Order
-                </button>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "10px",
-                  marginTop: "14px",
-                }}
-              >
-                {(["new", "in-progress", "done", "picked-up"] as const).map((status) => {
-                  const isCurrentStatus = order.status === status;
-                  const isUpdating = updatingKey === `${order.type}:${order.id}:${status}`;
-
-                  return (
-                    <button
-                      key={status}
-                      type="button"
-                      disabled={isCurrentStatus || Boolean(updatingKey)}
-                      onClick={() => updateStatus(order, status)}
+                    <div
                       style={{
-                        padding: "10px 14px",
-                        borderRadius: "999px",
-                        border: 0,
-                        background: isCurrentStatus
-                          ? "linear-gradient(135deg, #c47a45, #a6542d)"
-                          : "rgba(255, 243, 236, 0.9)",
-                        color: isCurrentStatus ? "#fff8f4" : "#64351e",
-                        fontWeight: 700,
-                        cursor: isCurrentStatus || updatingKey ? "default" : "pointer",
-                        opacity: isCurrentStatus ? 1 : updatingKey ? 0.55 : 1,
+                        display: "grid",
+                        gap: "14px",
+                        gridTemplateColumns: "auto minmax(0, 1.1fr) minmax(220px, 0.9fr)",
+                        alignItems: "start",
                       }}
                     >
-                      {isUpdating ? "Updating..." : formatStatusLabel(status)}
-                    </button>
-                  );
-                })}
-              </div>
-            </article>
-          ))
-        )}
+                      <label
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: "36px",
+                          height: "36px",
+                          marginTop: "4px",
+                          borderRadius: "12px",
+                          background: "rgba(255,255,255,0.8)",
+                          border: "1px solid rgba(107, 68, 45, 0.12)",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleOrderSelection(order)}
+                          aria-label={`Select order ${order.id}`}
+                        />
+                      </label>
+
+                      <div style={{ display: "grid", gap: "8px" }}>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
+                          <strong style={{ color: "#64351e", fontSize: "1.05rem" }}>
+                            {order.customerName || "Order"}
+                          </strong>
+                          <span
+                            style={{
+                              padding: "6px 10px",
+                              borderRadius: "999px",
+                              background: statusPillBackground(order.status),
+                              color: "#64351e",
+                              fontWeight: 700,
+                              fontSize: "0.86rem",
+                            }}
+                          >
+                            {formatStatusLabel(order.status)}
+                          </span>
+                          <span
+                            style={{
+                              padding: "6px 10px",
+                              borderRadius: "999px",
+                              background: "rgba(255, 243, 236, 0.95)",
+                              color: "#64351e",
+                              fontWeight: 700,
+                              fontSize: "0.86rem",
+                            }}
+                          >
+                            {typeLabel(order.type)}
+                          </span>
+                        </div>
+
+                        <div style={{ color: "#6f5143", lineHeight: 1.7 }}>
+                          <div>
+                            <strong style={{ color: "#5f311c" }}>Order ID:</strong> {order.id}
+                          </div>
+                          <div>
+                            <strong style={{ color: "#5f311c" }}>Items:</strong> {order.orderSummary}
+                          </div>
+                          <div>
+                            <strong style={{ color: "#5f311c" }}>Pickup:</strong> {order.pickupDate || "Not provided"}
+                          </div>
+                          <div>
+                            <strong style={{ color: "#5f311c" }}>Submitted:</strong> {formatDate(order.createdAt)}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ display: "grid", gap: "8px", color: "#6f5143", lineHeight: 1.7 }}>
+                        <div>
+                          <strong style={{ color: "#5f311c" }}>Email:</strong> {order.customerEmail || "Not provided"}
+                        </div>
+                        <div>
+                          <strong style={{ color: "#5f311c" }}>Phone:</strong> {order.phone || "Not provided"}
+                        </div>
+                        <div>
+                          <strong style={{ color: "#5f311c" }}>Payment:</strong> {order.paymentLabel}
+                        </div>
+                        <div>
+                          <strong style={{ color: "#5f311c" }}>Total:</strong> {formatMoney(order.amountTotal, order.currency)}
+                        </div>
+                        {order.notes ? (
+                          <div>
+                            <strong style={{ color: "#5f311c" }}>Notes:</strong> {order.notes}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "10px",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        paddingTop: "12px",
+                        borderTop: "1px solid rgba(107, 68, 45, 0.12)",
+                      }}
+                    >
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                        <button
+                          type="button"
+                          onClick={() => updateStatus(order, "new")}
+                          disabled={updatingKey.length > 0}
+                          style={buttonStyle(order.status === "new")}
+                        >
+                          New
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateStatus(order, "in-progress")}
+                          disabled={updatingKey.length > 0}
+                          style={buttonStyle(order.status === "in-progress")}
+                        >
+                          In Progress
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateStatus(order, "done")}
+                          disabled={updatingKey.length > 0}
+                          style={buttonStyle(order.status === "done")}
+                        >
+                          Done
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateStatus(order, "picked-up")}
+                          disabled={updatingKey.length > 0}
+                          style={buttonStyle(order.status === "picked-up")}
+                        >
+                          Picked Up
+                        </button>
+                      </div>
+
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                        <button type="button" onClick={() => printOrder(order)} style={buttonStyle()}>
+                          Print
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
       </div>
     </main>
   );
