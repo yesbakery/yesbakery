@@ -1279,9 +1279,8 @@
 
 .cartToast {
   position: fixed;
-  top: max(20px, env(safe-area-inset-top, 0px) + 18px);
-  left: 50%;
-  transform: translateX(-50%);
+  right: 24px;
+  bottom: max(24px, env(safe-area-inset-bottom, 0px) + 18px);
   z-index: 40;
   display: flex;
   align-items: center;
@@ -1448,12 +1447,12 @@
 @keyframes toastIn {
   from {
     opacity: 0;
-    transform: translate(-50%, -10px);
+    transform: translateY(12px);
   }
 
   to {
     opacity: 1;
-    transform: translate(-50%, 0);
+    transform: translateY(0);
   }
 }
 
@@ -1814,9 +1813,8 @@
   .cartToast {
     left: 12px;
     right: 12px;
-    top: max(12px, env(safe-area-inset-top, 0px) + 10px);
+    bottom: max(12px, env(safe-area-inset-bottom, 0px) + 12px);
     width: auto;
-    transform: none;
     flex-direction: column;
     align-items: stretch;
   }

@@ -44,7 +44,7 @@ export function ShopContent() {
 
     const timeout = window.setTimeout(() => {
       setCartNotice(null);
-    }, 2600);
+    }, 4200);
 
     return () => {
       window.clearTimeout(timeout);
@@ -127,7 +127,7 @@ export function ShopContent() {
         buildSection(
           activeFilter === "sourdough"
             ? isSpanish
-              ? "Masa Madre"
+              ? "Pan de Masa madre"
               : "Sourdough"
             : activeFilter === "treats"
               ? isSpanish
@@ -143,7 +143,7 @@ export function ShopContent() {
 
     return [
       buildSection(
-        isSpanish ? "Masa Madre" : "Sourdough",
+        isSpanish ? "Pan de Masa madre" : "Sourdough",
         filteredProducts.filter((product) => product.id.startsWith("sourdough")),
       ),
       buildSection(
@@ -186,7 +186,7 @@ export function ShopContent() {
           </div>
           <div className={styles.heroNote}>
             <span>{isSpanish ? "Favorito de la Panadería" : "Bakery Favorite"}</span>
-            <strong>{isSpanish ? "Masa Madre" : "Sourdough"}</strong>
+            <strong>{isSpanish ? "Pan de Masa madre" : "Sourdough"}</strong>
             <em>
               {currency.format(10)} {isSpanish ? "cada uno" : "each"}
             </em>
@@ -199,7 +199,7 @@ export function ShopContent() {
           <div className={styles.shopFilters} aria-label="Shop filters">
             {[
               { id: "all", label: isSpanish ? "Todo" : "All" },
-              { id: "sourdough", label: isSpanish ? "Masa Madre" : "Sourdough" },
+              { id: "sourdough", label: isSpanish ? "Pan de Masa madre" : "Sourdough" },
               { id: "treats", label: isSpanish ? "Dulces" : "Treats" },
               { id: "jams", label: isSpanish ? "Mermeladas" : "Jams" },
             ].map((filter) => (

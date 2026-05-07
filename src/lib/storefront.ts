@@ -183,6 +183,27 @@ export function getLatestPickupDate() {
   return "";
 }
 
+export function getPickupDateOptions(limit = 16) {
+  const earliestPickupDate = getEarliestPickupDate();
+  if (!earliestPickupDate) {
+    return [];
+  }
+
+  const options: string[] = [];
+  const cursor = new Date(`${earliestPickupDate}T00:00:00`);
+
+  while (options.length < limit) {
+    const day = cursor.getDay();
+    if (day === 6 || day === 0) {
+      options.push(toLocalDateString(cursor));
+    }
+
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return options;
+}
+
 export function isPickupDateValid(value: string, fulfillmentMethod: CheckoutForm["fulfillmentMethod"] = "pickup") {
   if (!value) {
     return false;

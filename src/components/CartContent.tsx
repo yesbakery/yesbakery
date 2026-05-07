@@ -12,6 +12,7 @@ import {
   currency,
   getCartItemMinimumQuantity,
   getEarliestPickupDate,
+  getPickupDateOptions,
   getEarliestShippingDate,
   getLatestPickupDate,
   initialCheckoutForm,
@@ -129,6 +130,21 @@ export function CartContent() {
   const hasApprovedShippingCode = checkoutForm.shippingApprovalCode.trim().length > 0;
   const pickupDateMin = needsShippingDetails ? getEarliestShippingDate() : getEarliestPickupDate();
   const pickupDateMax = needsShippingDetails ? undefined : getLatestPickupDate();
+  const pickupDateOptions = getPickupDateOptions();
+
+  function formatPickupOption(value: string) {
+    const date = new Date(`${value}T12:00:00`);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return new Intl.DateTimeFormat(isSpanish ? "es-US" : "en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    }).format(date);
+  }
 
   function updateQuantity(cartKey: string, nextQuantity: number) {
     setCheckoutError("");
@@ -666,16 +682,35 @@ export function CartContent() {
                       : isSpanish
                         ? "Fecha de Recogida"
                         : "Pickup Date"}
-                    <input
-                      type="date"
-                      value={checkoutForm.pickupDate}
-                      min={pickupDateMin}
-                      max={pickupDateMax}
-                      onChange={(event) =>
-                        setCheckoutForm((current) => ({ ...current, pickupDate: event.target.value }))
-                      }
-                      required
-                    />
+                    {checkoutForm.fulfillmentMethod === "pickup" ? (
+                      <select
+                        value={checkoutForm.pickupDate}
+                        onChange={(event) =>
+                          setCheckoutForm((current) => ({ ...current, pickupDate: event.target.value }))
+                        }
+                        required
+                      >
+                        <option value="">
+                          {isSpanish ? "Seleccione un sábado o domingo" : "Select a Saturday or Sunday"}
+                        </option>
+                        {pickupDateOptions.map((option) => (
+                          <option key={option} value={option}>
+                            {formatPickupOption(option)}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="date"
+                        value={checkoutForm.pickupDate}
+                        min={pickupDateMin}
+                        max={pickupDateMax}
+                        onChange={(event) =>
+                          setCheckoutForm((current) => ({ ...current, pickupDate: event.target.value }))
+                        }
+                        required
+                      />
+                    )}
                     {checkoutForm.fulfillmentMethod === "pickup" ? (
                       <span className={styles.fieldHint}>
                         {isSpanish

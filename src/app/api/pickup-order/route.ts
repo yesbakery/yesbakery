@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { getMinimumQuantityForProduct, products } from "../../../lib/catalog";
+import { renderOrderItemsEmail } from "../../../lib/email-order-items";
 import { recordPickupOrder } from "../../../lib/pickup-orders";
 
 type PickupOrderPayload = {
@@ -109,6 +110,16 @@ export async function POST(request: NextRequest) {
   const totalDue = cart.reduce((total, item) => total + item.lineTotal, 0);
   const orderId = buildOrderId();
   const resend = new Resend(resendApiKey);
+  const origin = request.nextUrl.origin;
+  const itemListMarkup = renderOrderItemsEmail(
+    cart.map((item) => ({
+      id: item.product.id,
+      name: item.product.name,
+      quantity: item.quantity,
+      amount: item.lineTotal,
+    })),
+    origin,
+  );
 
   try {
     await resend.emails.send({
@@ -125,7 +136,8 @@ export async function POST(request: NextRequest) {
         <p><strong>Pickup date:</strong> ${pickupDate}</p>
         <p><strong>Payment:</strong> Pay at pickup</p>
         <p><strong>Pickup code:</strong> ${pickupApprovalCode}</p>
-        <p><strong>Items:</strong> ${orderSummary}</p>
+        <p><strong>Items:</strong></p>
+        ${itemListMarkup}
         <p><strong>Total due at pickup:</strong> ${formatAmount(totalDue)}</p>
         ${notes ? `<p><strong>Order notes:</strong> ${notes.replace(/\n/g, "<br />")}</p>` : ""}
       `,
@@ -142,7 +154,8 @@ export async function POST(request: NextRequest) {
         <p><strong>Pickup date:</strong> ${pickupDate}</p>
         <p><strong>Payment:</strong> Pay at pickup</p>
         <p><strong>Pickup code:</strong> ${pickupApprovalCode}</p>
-        <p><strong>Items:</strong> ${orderSummary}</p>
+        <p><strong>Items:</strong></p>
+        ${itemListMarkup}
         <p><strong>Total due at pickup:</strong> ${formatAmount(totalDue)}</p>
         <p>Yes Bakery is located in Union City, California. Pickup details will be provided by email.</p>
         ${notes ? `<p><strong>Order notes:</strong> ${notes.replace(/\n/g, "<br />")}</p>` : ""}

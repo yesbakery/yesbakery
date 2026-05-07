@@ -145,9 +145,6 @@ export function SiteShell({ children }: PropsWithChildren) {
 
         <footer className={styles.siteCredit}>
           <div className={styles.siteCreditMeta}>
-            <a className={styles.siteContactLink} href="tel:5103298786">
-              {isSpanish ? "Llame o escriba al 510-329-8786" : "Call or Text 510-329-8786"}
-            </a>
             <a
               href="https://webrandca.com"
               target="_blank"
