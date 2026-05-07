@@ -95,6 +95,8 @@ async function buildInlineImageAttachment(publicAssetPath: string, contentId: st
   }
 }
 
+type InlineImageAttachment = NonNullable<Awaited<ReturnType<typeof buildInlineImageAttachment>>>;
+
 async function sendPickedUpEmail(order: UnifiedOrder) {
   const resendApiKey = process.env.RESEND_API_KEY?.trim() || "";
   const resendFromEmail = process.env.RESEND_FROM_EMAIL?.trim() || "onboarding@resend.dev";
@@ -137,9 +139,12 @@ async function sendPickedUpEmail(order: UnifiedOrder) {
       `;
     })
     .join("");
-  const emailAttachments = [logoImage, ...suggestionImages]
-    .map((item) => item?.image?.attachment || item?.attachment)
-    .filter(Boolean);
+  const emailAttachments = [
+    ...(logoImage ? [logoImage.attachment] : []),
+    ...suggestionImages
+      .map(({ image }) => image?.attachment)
+      .filter((attachment): attachment is InlineImageAttachment["attachment"] => Boolean(attachment)),
+  ];
 
   await resend.emails.send({
     attachments: emailAttachments,
