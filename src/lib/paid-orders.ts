@@ -13,6 +13,10 @@ export type RecordedPaidOrder = {
   orderSummary: string;
   notes: string;
   createdAt: string;
+  status?: "new" | "in-progress" | "done" | "picked-up";
+  statusUpdatedAt?: string;
+  pickedUpAt?: string;
+  followUpEmailSentAt?: string;
 };
 
 const dataDirectory = path.join(process.cwd(), "data");
@@ -21,7 +25,13 @@ const paidOrdersFilePath = path.join(dataDirectory, "paid-orders.json");
 async function readPaidOrders() {
   try {
     const contents = await readFile(paidOrdersFilePath, "utf8");
-    return JSON.parse(contents) as RecordedPaidOrder[];
+    return (JSON.parse(contents) as RecordedPaidOrder[]).map((order) => ({
+      ...order,
+      status: order.status || "new",
+      statusUpdatedAt: order.statusUpdatedAt || order.createdAt,
+      pickedUpAt: order.pickedUpAt || "",
+      followUpEmailSentAt: order.followUpEmailSentAt || "",
+    }));
   } catch {
     return [];
   }
@@ -39,6 +49,45 @@ export async function recordPaidOrder(order: RecordedPaidOrder) {
   }
 
   await mkdir(dataDirectory, { recursive: true });
-  await writeFile(paidOrdersFilePath, JSON.stringify([order, ...existingOrders], null, 2));
+  await writeFile(
+    paidOrdersFilePath,
+    JSON.stringify(
+      [
+        {
+          ...order,
+          status: order.status || "new",
+          statusUpdatedAt: order.statusUpdatedAt || order.createdAt,
+          pickedUpAt: order.pickedUpAt || "",
+          followUpEmailSentAt: order.followUpEmailSentAt || "",
+        },
+        ...existingOrders,
+      ],
+      null,
+      2,
+    ),
+  );
   return true;
+}
+
+export async function updatePaidOrder(
+  sessionId: string,
+  updates: Partial<RecordedPaidOrder>,
+) {
+  const existingOrders = await readPaidOrders();
+  const orderIndex = existingOrders.findIndex((entry) => entry.sessionId === sessionId);
+
+  if (orderIndex === -1) {
+    return null;
+  }
+
+  const updatedOrder = {
+    ...existingOrders[orderIndex],
+    ...updates,
+  };
+
+  existingOrders[orderIndex] = updatedOrder;
+  await mkdir(dataDirectory, { recursive: true });
+  await writeFile(paidOrdersFilePath, JSON.stringify(existingOrders, null, 2));
+
+  return updatedOrder;
 }
