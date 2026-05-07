@@ -1,6 +1,6 @@
 import Stripe from "stripe";
 import { NextRequest, NextResponse } from "next/server";
-import { products } from "../../../lib/catalog";
+import { getMinimumQuantityForProduct, products } from "../../../lib/catalog";
 import { getStripePriceId, getStripeServerClient } from "../../../lib/stripe-config";
 import { findApprovedShippingRequestByCode } from "../../../lib/shipping-requests";
 
@@ -119,9 +119,13 @@ export async function POST(request: NextRequest) {
     const productId = requireString(rawItem.id);
     const quantity = Number(rawItem.quantity);
     const product = products.find((entry) => entry.id === productId);
+    const minimumQuantity = getMinimumQuantityForProduct(productId);
 
     if (!product || !Number.isInteger(quantity) || quantity <= 0) {
       return badRequest("One or more items in the cart are invalid.");
+    }
+    if (quantity < minimumQuantity) {
+      return badRequest(`${product.name} requires a minimum quantity of ${minimumQuantity}.`);
     }
     const stripePriceId = getStripePriceId(product.id);
 

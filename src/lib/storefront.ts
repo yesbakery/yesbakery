@@ -1,4 +1,4 @@
-import { Product } from "./catalog";
+import { getMinimumQuantityForProduct, Product } from "./catalog";
 
 export type CartItem = Product & {
   cartKey: string;
@@ -80,11 +80,15 @@ function startOfToday() {
 export function normalizeCartItem(item: Partial<CartItem> & Product): CartItem {
   const selectedInclusions = Array.isArray(item.selectedInclusions) ? item.selectedInclusions : [];
   const unitPrice = typeof item.unitPrice === "number" ? item.unitPrice : item.price;
+  const minimumQuantity = getMinimumQuantityForProduct(item.id);
 
   return {
     ...item,
     cartKey: typeof item.cartKey === "string" && item.cartKey.length > 0 ? item.cartKey : item.id,
-    quantity: typeof item.quantity === "number" && item.quantity > 0 ? item.quantity : 1,
+    quantity:
+      typeof item.quantity === "number" && item.quantity > 0
+        ? Math.max(item.quantity, minimumQuantity)
+        : minimumQuantity,
     unitPrice,
     selectedInclusions,
   };
@@ -212,4 +216,8 @@ export function formatCartSummary(cart: CartItem[]) {
 
 export function getStoredCartItemCount() {
   return readStoredCart().reduce((total, item) => total + item.quantity, 0);
+}
+
+export function getCartItemMinimumQuantity(item: Pick<CartItem, "id">) {
+  return getMinimumQuantityForProduct(item.id);
 }

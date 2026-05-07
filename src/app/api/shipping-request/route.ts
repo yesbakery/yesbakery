@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
+import { getMinimumQuantityForProduct } from "../../../lib/catalog";
 import { createShippingRequest } from "../../../lib/shipping-requests";
 
 type ShippingRequestPayload = {
@@ -66,6 +67,11 @@ export async function POST(request: NextRequest) {
         }))
       : [],
   }));
+
+  const minimumQuantityError = cart.find((item) => item.quantity < getMinimumQuantityForProduct(item.id));
+  if (minimumQuantityError) {
+    return badRequest(`${minimumQuantityError.name} requires a minimum quantity of ${getMinimumQuantityForProduct(minimumQuantityError.id)}.`);
+  }
 
   const orderSummary = cart
     .map((item) => {

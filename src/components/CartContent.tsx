@@ -3,11 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import styles from "../app/page.module.css";
+import { useLanguage } from "./LanguageProvider";
+import { getLocalizedProductName } from "../lib/catalog";
 import {
   CartItem,
   CheckoutForm,
   clearStoredCheckout,
   currency,
+  getCartItemMinimumQuantity,
   getEarliestPickupDate,
   getEarliestShippingDate,
   getLatestPickupDate,
@@ -23,23 +26,40 @@ import {
 type CheckoutStep = 1 | 2;
 
 export function CartContent() {
+  const { language } = useLanguage();
   const overlayRef = useRef<HTMLDivElement | null>(null);
-  const [cart, setCart] = useState<CartItem[]>(readStoredCart);
-  const [checkoutForm, setCheckoutForm] = useState<CheckoutForm>(readStoredForm);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [checkoutForm, setCheckoutForm] = useState<CheckoutForm>(initialCheckoutForm);
   const [checkoutError, setCheckoutError] = useState("");
   const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false);
   const [isSendingShippingRequest, setIsSendingShippingRequest] = useState(false);
   const [isSubmittingPickupOrder, setIsSubmittingPickupOrder] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>(1);
+  const [hasLoadedCheckoutState, setHasLoadedCheckoutState] = useState(false);
+  const isSpanish = language === "es";
 
   useEffect(() => {
+    setCart(readStoredCart());
+    setCheckoutForm(readStoredForm());
+    setHasLoadedCheckoutState(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedCheckoutState) {
+      return;
+    }
+
     saveStoredCart(cart);
-  }, [cart]);
+  }, [cart, hasLoadedCheckoutState]);
 
   useEffect(() => {
+    if (!hasLoadedCheckoutState) {
+      return;
+    }
+
     saveStoredForm(checkoutForm);
-  }, [checkoutForm]);
+  }, [checkoutForm, hasLoadedCheckoutState]);
 
   useEffect(() => {
     if (!isCheckoutOpen) {
@@ -51,6 +71,10 @@ export function CartContent() {
   }, [isCheckoutOpen, checkoutStep]);
 
   useEffect(() => {
+    if (!hasLoadedCheckoutState) {
+      return;
+    }
+
     const params = new URLSearchParams(window.location.search);
     const checkoutParam = params.get("checkout");
     const shippingCode = params.get("shippingCode");
@@ -90,9 +114,13 @@ export function CartContent() {
         }));
       }
     } catch {
-      setCheckoutError("We couldn't restore your approved shipping cart from the email link.");
+      setCheckoutError(
+        isSpanish
+          ? "No pudimos restaurar su carrito aprobado desde el enlace del correo."
+          : "We couldn't restore your approved shipping cart from the email link.",
+      );
     }
-  }, []);
+  }, [hasLoadedCheckoutState, isSpanish]);
 
   const itemCount = cart.reduce((total, item) => total + item.quantity, 0);
   const subtotal = cart.reduce((total, item) => total + item.unitPrice * item.quantity, 0);
@@ -106,7 +134,11 @@ export function CartContent() {
     setCheckoutError("");
     setCart((currentCart) =>
       currentCart
-        .map((item) => (item.cartKey === cartKey ? { ...item, quantity: nextQuantity } : item))
+        .map((item) =>
+          item.cartKey === cartKey
+            ? { ...item, quantity: Math.max(nextQuantity, getCartItemMinimumQuantity(item)) }
+            : item,
+        )
         .filter((item) => item.quantity > 0),
     );
   }
@@ -162,42 +194,63 @@ export function CartContent() {
   }
 
   function validateCheckoutDetails() {
+    const minimumQuantityIssue = cart.find((item) => item.quantity < getCartItemMinimumQuantity(item));
+    if (minimumQuantityIssue) {
+      return isSpanish
+        ? `${minimumQuantityIssue.name} requiere una cantidad mínima de ${getCartItemMinimumQuantity(minimumQuantityIssue)}.`
+        : `${minimumQuantityIssue.name} requires a minimum quantity of ${getCartItemMinimumQuantity(minimumQuantityIssue)}.`;
+    }
+
     if (!checkoutForm.fullName.trim() || !checkoutForm.email.trim() || !checkoutForm.phone.trim() || !checkoutForm.pickupDate.trim()) {
-      return "Please complete your name, email, phone, and date before continuing.";
+      return isSpanish
+        ? "Por favor complete su nombre, correo electrónico, teléfono y fecha antes de continuar."
+        : "Please complete your name, email, phone, and date before continuing.";
     }
 
     if (!isPickupDateValid(checkoutForm.pickupDate, checkoutForm.fulfillmentMethod)) {
       if (checkoutForm.fulfillmentMethod === "pickup") {
-        return "Please choose a Saturday or Sunday pickup date that is at least 48 hours away.";
+        return isSpanish
+          ? "Por favor elija una fecha de recogida en sábado o domingo que esté al menos a 48 horas de distancia."
+          : "Please choose a Saturday or Sunday pickup date that is at least 48 hours away.";
       }
 
-      return "Orders must be placed at least 48 hours in advance.";
+      return isSpanish
+        ? "Los pedidos deben hacerse con al menos 48 horas de anticipación."
+        : "Orders must be placed at least 48 hours in advance.";
     }
 
     if (checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup") {
       const pickupApprovalCode = checkoutForm.pickupApprovalCode.trim();
 
       if (!pickupApprovalCode) {
-        return "A pickup code is required before this order can be placed.";
+        return isSpanish
+          ? "Se requiere un código de recogida antes de poder hacer este pedido."
+          : "A pickup code is required before this order can be placed.";
       }
 
       if (!pickupApprovalCode.toUpperCase().startsWith("YB-")) {
-        return "Pickup codes must start with YB-.";
+        return isSpanish ? "Los códigos de recogida deben comenzar con YB-." : "Pickup codes must start with YB-.";
       }
     }
 
     if (checkoutForm.fulfillmentMethod === "shipping-request") {
       if (!checkoutForm.shippingAddress.trim()) {
-        return "Please enter the delivery address for the shipping request.";
+        return isSpanish
+          ? "Por favor ingrese la dirección de entrega para la solicitud de envío."
+          : "Please enter the delivery address for the shipping request.";
       }
 
       if (!checkoutForm.shippingRequest.trim()) {
-        return "Please tell us where the order would be shipped and any arrangement details.";
+        return isSpanish
+          ? "Por favor indíquenos a dónde se enviaría el pedido y cualquier detalle del arreglo."
+          : "Please tell us where the order would be shipped and any arrangement details.";
       }
     }
 
     if (checkoutForm.fulfillmentMethod === "shipping-code" && !checkoutForm.shippingApprovalCode.trim()) {
-      return "A shipping approval code is required before shipping orders can continue.";
+      return isSpanish
+        ? "Se requiere un código de aprobación de envío antes de continuar con pedidos enviados."
+        : "A shipping approval code is required before shipping orders can continue.";
     }
 
     return "";
@@ -236,7 +289,13 @@ export function CartContent() {
       setCheckoutForm(initialCheckoutForm);
       window.location.href = `/shipping-request/sent${payload.requestId ? `?requestId=${encodeURIComponent(payload.requestId)}` : ""}`;
     } catch (error) {
-      setCheckoutError(error instanceof Error ? error.message : "We couldn't send your shipping request right now.");
+      setCheckoutError(
+        error instanceof Error
+          ? error.message
+          : isSpanish
+            ? "No pudimos enviar su solicitud de envío en este momento."
+            : "We couldn't send your shipping request right now.",
+      );
     } finally {
       setIsSendingShippingRequest(false);
     }
@@ -271,7 +330,13 @@ export function CartContent() {
 
       window.location.href = payload.url;
     } catch (error) {
-      setCheckoutError(error instanceof Error ? error.message : "We couldn't start Stripe checkout.");
+      setCheckoutError(
+        error instanceof Error
+          ? error.message
+          : isSpanish
+            ? "No pudimos iniciar el checkout."
+            : "We couldn't start Stripe checkout.",
+      );
       setIsRedirectingToCheckout(false);
     }
   }
@@ -308,7 +373,13 @@ export function CartContent() {
       setCheckoutForm(initialCheckoutForm);
       window.location.href = `/checkout/pickup-success?order_id=${encodeURIComponent(payload.orderId)}`;
     } catch (error) {
-      setCheckoutError(error instanceof Error ? error.message : "We couldn't place your pickup order.");
+      setCheckoutError(
+        error instanceof Error
+          ? error.message
+          : isSpanish
+            ? "No pudimos realizar su pedido para recoger."
+            : "We couldn't place your pickup order.",
+      );
       setIsSubmittingPickupOrder(false);
     }
   }
@@ -332,22 +403,40 @@ export function CartContent() {
       <section className={styles.checkoutSection}>
         <div className={styles.checkoutPanel}>
           <div className={styles.checkoutSummary}>
-            <p className={styles.kicker}>Your Cart</p>
-            <h2>Review your order before checkout</h2>
-            <p>Adjust quantities, remove items, and then continue into a cleaner guided checkout experience.</p>
+            <p className={styles.kicker}>{isSpanish ? "Su Carrito" : "Your Cart"}</p>
+            <h2>{isSpanish ? "Revise su pedido antes de continuar" : "Review your order before checkout"}</h2>
+            <p>
+              {isSpanish
+                ? "Ajuste cantidades, elimine artículos y luego continúe a una experiencia de checkout guiada."
+                : "Adjust quantities, remove items, and then continue into a cleaner guided checkout experience."}
+            </p>
 
             <div className={styles.cartList}>
               {cart.length === 0 ? (
                 <div className={styles.emptyCart}>
-                  <strong>Your cart is empty.</strong>
-                  <p>Add breads or pastries from the shop page to begin your order.</p>
+                  <strong>{isSpanish ? "Su carrito está vacío." : "Your cart is empty."}</strong>
+                  <p>{isSpanish ? "Agregue panes o pasteles desde la tienda para comenzar su pedido." : "Add breads or pastries from the shop page to begin your order."}</p>
                 </div>
               ) : (
-                cart.map((item) => (
-                  <div key={item.cartKey} className={styles.cartItem}>
+                cart.map((item) => {
+                  const itemName = getLocalizedProductName(item.id, item.name, language);
+
+                  return (
+                    <div key={item.cartKey} className={styles.cartItem}>
+                    <div className={styles.cartItemImageWrap}>
+                      <Image src={item.image} alt={itemName} fill sizes="92px" />
+                    </div>
+
                     <div className={styles.cartItemInfo}>
-                      <strong>{item.name}</strong>
-                      <p>{currency.format(item.unitPrice)} each</p>
+                      <strong>{itemName}</strong>
+                      <p>{currency.format(item.unitPrice)} {isSpanish ? "cada uno" : "each"}</p>
+                      {getCartItemMinimumQuantity(item) > 1 ? (
+                        <span className={styles.minimumOrderNote}>
+                          {isSpanish
+                            ? `Mínimo ${getCartItemMinimumQuantity(item)} cada uno`
+                            : `Minimum ${getCartItemMinimumQuantity(item)} each`}
+                        </span>
+                      ) : null}
                     </div>
 
                     <div className={styles.cartControls}>
@@ -356,7 +445,12 @@ export function CartContent() {
                           type="button"
                           className={styles.qtyButton}
                           onClick={() => updateQuantity(item.cartKey, item.quantity - 1)}
-                          aria-label={`Decrease ${item.name} quantity`}
+                          aria-label={
+                            isSpanish
+                              ? `Disminuir cantidad de ${itemName}`
+                              : `Decrease ${itemName} quantity`
+                          }
+                          disabled={item.quantity <= getCartItemMinimumQuantity(item)}
                         >
                           -
                         </button>
@@ -365,7 +459,11 @@ export function CartContent() {
                           type="button"
                           className={styles.qtyButton}
                           onClick={() => updateQuantity(item.cartKey, item.quantity + 1)}
-                          aria-label={`Increase ${item.name} quantity`}
+                          aria-label={
+                            isSpanish
+                              ? `Aumentar cantidad de ${itemName}`
+                              : `Increase ${itemName} quantity`
+                          }
                         >
                           +
                         </button>
@@ -377,38 +475,41 @@ export function CartContent() {
                         className={styles.removeButton}
                         onClick={() => removeFromCart(item.cartKey)}
                       >
-                        Remove
+                        {isSpanish ? "Eliminar" : "Remove"}
                       </button>
                     </div>
                   </div>
-                ))
+                  );
+                })
               )}
             </div>
 
             <div className={styles.totals}>
               <div>
-                <span>Items</span>
+                <span>{isSpanish ? "Artículos" : "Items"}</span>
                 <strong>{itemCount}</strong>
               </div>
               <div>
-                <span>Subtotal</span>
+                <span>{isSpanish ? "Subtotal" : "Subtotal"}</span>
                 <strong>{currency.format(subtotal)}</strong>
               </div>
             </div>
           </div>
 
           <div className={styles.checkoutLauncherCard}>
-            <p className={styles.kicker}>Checkout</p>
-            <h2>Ready to place the order?</h2>
+            <p className={styles.kicker}>{isSpanish ? "Checkout" : "Checkout"}</p>
+            <h2>{isSpanish ? "¿Listo para hacer el pedido?" : "Ready to place the order?"}</h2>
             <p>
-              Choose between placing a Union City pickup order or requesting a shipping arrangement in a step-by-step checkout flow.
+              {isSpanish
+                ? "Elija entre hacer un pedido para recoger en Union City o solicitar un arreglo de envío en un flujo de checkout paso a paso."
+                : "Choose between placing a Union City pickup order or requesting a shipping arrangement in a step-by-step checkout flow."}
             </p>
             <button type="button" className={styles.submitButton} disabled={cart.length === 0} onClick={openCheckout}>
-              Checkout
+              {isSpanish ? "Finalizar Pedido" : "Checkout"}
             </button>
             {checkoutError ? (
               <div className={styles.successMessage}>
-                <strong>Checkout could not continue.</strong>
+                <strong>{isSpanish ? "No se pudo continuar con el checkout." : "Checkout could not continue."}</strong>
                 <p>{checkoutError}</p>
               </div>
             ) : null}
@@ -433,12 +534,18 @@ export function CartContent() {
 
             <div className={styles.modalHeader}>
               <div>
-                <p className={styles.kicker}>Checkout</p>
-                <h2 id="checkout-wizard-title">A simple step-by-step checkout</h2>
+                <p className={styles.kicker}>{isSpanish ? "Checkout" : "Checkout"}</p>
+                <h2 id="checkout-wizard-title">
+                  {isSpanish ? "Un checkout simple paso a paso" : "A simple step-by-step checkout"}
+                </h2>
                 <p className={styles.modalIntro}>
                   {checkoutStep === 1
-                    ? "Choose how you would like to place this order."
-                    : "Enter the details to complete this order."}
+                    ? isSpanish
+                      ? "Elija cómo desea hacer este pedido."
+                      : "Choose how you would like to place this order."
+                    : isSpanish
+                      ? "Ingrese los detalles para completar este pedido."
+                      : "Enter the details to complete this order."}
                 </p>
               </div>
 
@@ -446,7 +553,7 @@ export function CartContent() {
                 type="button"
                 className={styles.modalClose}
                 onClick={closeCheckout}
-                aria-label="Close checkout"
+                aria-label={isSpanish ? "Cerrar checkout" : "Close checkout"}
               >
                 x
               </button>
@@ -454,10 +561,10 @@ export function CartContent() {
 
             <div className={styles.checkoutSteps}>
               <div className={`${styles.checkoutStepPill} ${checkoutStep === 1 ? styles.checkoutStepPillActive : ""}`}>
-                1. Order Type
+                {isSpanish ? "1. Tipo de Pedido" : "1. Order Type"}
               </div>
               <div className={`${styles.checkoutStepPill} ${checkoutStep === 2 ? styles.checkoutStepPillActive : ""}`}>
-                2. Details
+                {isSpanish ? "2. Detalles" : "2. Details"}
               </div>
             </div>
 
@@ -468,8 +575,14 @@ export function CartContent() {
                   className={styles.checkoutOptionCard}
                   onClick={() => selectCheckoutType("pickup-later")}
                 >
-                  <strong>Place order, pay and pick up at Union City</strong>
-                  <p>Pickup dates are Saturdays and Sundays only, and each order must be placed at least 48 hours in advance.</p>
+                  <strong>
+                    {isSpanish ? "Hacer pedido, pagar y recoger en Union City" : "Place order, pay and pick up at Union City"}
+                  </strong>
+                  <p>
+                    {isSpanish
+                      ? "Las fechas de recogida son solo sábados y domingos, y cada pedido debe hacerse con al menos 48 horas de anticipación."
+                      : "Pickup dates are Saturdays and Sundays only, and each order must be placed at least 48 hours in advance."}
+                  </p>
                 </button>
 
                 <button
@@ -477,8 +590,12 @@ export function CartContent() {
                   className={styles.checkoutOptionCard}
                   onClick={() => selectCheckoutType("shipping-request")}
                 >
-                  <strong>Request shipping arrangement</strong>
-                  <p>Requires approval. Extra lead time is necessary for this type of request, so please plan accordingly.</p>
+                  <strong>{isSpanish ? "Solicitar arreglo de envío" : "Request shipping arrangement"}</strong>
+                  <p>
+                    {isSpanish
+                      ? "Requiere aprobación. Se necesita más tiempo para este tipo de solicitud, así que por favor planifique con anticipación."
+                      : "Requires approval. Extra lead time is necessary for this type of request, so please plan accordingly."}
+                  </p>
                 </button>
 
                 {hasApprovedShippingCode ? (
@@ -487,22 +604,26 @@ export function CartContent() {
                     className={styles.checkoutOptionCard}
                     onClick={() => selectCheckoutType("shipping-code")}
                   >
-                    <strong>Use approved shipping code</strong>
-                    <p>Continue with the shipping approval code that was sent to you.</p>
+                    <strong>{isSpanish ? "Usar código de envío aprobado" : "Use approved shipping code"}</strong>
+                    <p>
+                      {isSpanish
+                        ? "Continúe con el código de aprobación de envío que se le envió."
+                        : "Continue with the shipping approval code that was sent to you."}
+                    </p>
                   </button>
                 ) : null}
               </div>
             ) : (
               <div className={styles.checkoutWizardFormWrap}>
                 <div className={styles.checkoutSummaryMini}>
-                  <strong>Order summary</strong>
-                  <p>{itemCount} items</p>
+                  <strong>{isSpanish ? "Resumen del pedido" : "Order summary"}</strong>
+                  <p>{itemCount} {isSpanish ? "artículos" : "items"}</p>
                   <span>{currency.format(subtotal)}</span>
                 </div>
 
                 <form className={styles.checkoutForm} onSubmit={(event) => event.preventDefault()}>
                   <label>
-                    Full Name
+                    {isSpanish ? "Nombre Completo" : "Full Name"}
                     <input
                       type="text"
                       value={checkoutForm.fullName}
@@ -514,7 +635,7 @@ export function CartContent() {
                   </label>
 
                   <label>
-                    Email
+                    {isSpanish ? "Correo Electrónico" : "Email"}
                     <input
                       type="email"
                       value={checkoutForm.email}
@@ -526,7 +647,7 @@ export function CartContent() {
                   </label>
 
                   <label>
-                    Phone
+                    {isSpanish ? "Teléfono" : "Phone"}
                     <input
                       type="tel"
                       value={checkoutForm.phone}
@@ -538,7 +659,13 @@ export function CartContent() {
                   </label>
 
                   <label>
-                    {needsShippingDetails ? "Desired Delivered-By Date" : "Pickup Date"}
+                    {needsShippingDetails
+                      ? isSpanish
+                        ? "Fecha Deseada de Entrega"
+                        : "Desired Delivered-By Date"
+                      : isSpanish
+                        ? "Fecha de Recogida"
+                        : "Pickup Date"}
                     <input
                       type="date"
                       value={checkoutForm.pickupDate}
@@ -551,36 +678,48 @@ export function CartContent() {
                     />
                     {checkoutForm.fulfillmentMethod === "pickup" ? (
                       <span className={styles.fieldHint}>
-                        Pickup dates must be on a future Saturday or Sunday and at least 48 hours away.
+                        {isSpanish
+                          ? "Las fechas de recogida deben ser un sábado o domingo futuro y estar al menos a 48 horas de distancia."
+                          : "Pickup dates must be on a future Saturday or Sunday and at least 48 hours away."}
                       </span>
                     ) : (
-                      <span className={styles.fieldHint}>Please choose a date at least 48 hours away.</span>
+                      <span className={styles.fieldHint}>
+                        {isSpanish ? "Por favor elija una fecha con al menos 48 horas de anticipación." : "Please choose a date at least 48 hours away."}
+                      </span>
                     )}
                   </label>
 
                   {checkoutForm.fulfillmentMethod === "shipping-request" ? (
                     <>
                       <label>
-                        Delivery Address
+                        {isSpanish ? "Dirección de Entrega" : "Delivery Address"}
                         <textarea
                           rows={3}
                           value={checkoutForm.shippingAddress}
                           onChange={(event) =>
                             setCheckoutForm((current) => ({ ...current, shippingAddress: event.target.value }))
                           }
-                          placeholder="Street address, city, state, ZIP code, and any delivery instructions."
+                          placeholder={
+                            isSpanish
+                              ? "Dirección, ciudad, estado, código postal y cualquier instrucción de entrega."
+                              : "Street address, city, state, ZIP code, and any delivery instructions."
+                          }
                         />
                       </label>
 
                       <label>
-                        Shipping Arrangement Details
+                        {isSpanish ? "Detalles del Arreglo de Envío" : "Shipping Arrangement Details"}
                         <textarea
                           rows={3}
                           value={checkoutForm.shippingRequest}
                           onChange={(event) =>
                             setCheckoutForm((current) => ({ ...current, shippingRequest: event.target.value }))
                           }
-                          placeholder="Tell us what you need shipped. Extra lead time is necessary for this type of request, so please plan accordingly."
+                          placeholder={
+                            isSpanish
+                              ? "Cuéntenos lo que necesita enviar. Este tipo de solicitud requiere más tiempo, así que por favor planifique con anticipación."
+                              : "Tell us what you need shipped. Extra lead time is necessary for this type of request, so please plan accordingly."
+                          }
                         />
                       </label>
                     </>
@@ -588,14 +727,14 @@ export function CartContent() {
 
                   {checkoutForm.fulfillmentMethod === "shipping-code" ? (
                     <label>
-                      Shipping Approval Code
+                      {isSpanish ? "Código de Aprobación de Envío" : "Shipping Approval Code"}
                       <input
                         type="text"
                         value={checkoutForm.shippingApprovalCode}
                         onChange={(event) =>
                           setCheckoutForm((current) => ({ ...current, shippingApprovalCode: event.target.value }))
                         }
-                        placeholder="Enter your shipping approval code"
+                        placeholder={isSpanish ? "Ingrese su código de aprobación de envío" : "Enter your shipping approval code"}
                       />
                     </label>
                   ) : null}
@@ -603,40 +742,44 @@ export function CartContent() {
                   {checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup" ? (
                     <div className={styles.codeFieldWrap}>
                       <label>
-                        Pickup Code
+                        {isSpanish ? "Código de Recogida" : "Pickup Code"}
                         <input
                           type="text"
                           value={checkoutForm.pickupApprovalCode}
                           onChange={(event) =>
                             setCheckoutForm((current) => ({ ...current, pickupApprovalCode: event.target.value.toUpperCase() }))
                           }
-                          placeholder="Enter your YB- pickup code"
+                          placeholder={isSpanish ? "Ingrese su código de recogida" : "Enter your pickup code"}
                           required
                         />
                       </label>
                       <div className={styles.codeHelpPanel}>
-                        <strong>No code?</strong>
-                        <p>Text 510-329-8786 and request one.</p>
+                        <strong>{isSpanish ? "¿No tiene código?" : "No code?"}</strong>
+                        <p>{isSpanish ? "Escriba al 510-329-8786 y solicite uno." : "Text 510-329-8786 and request one."}</p>
                       </div>
                     </div>
                   ) : null}
 
                   <label>
-                    Order Notes
+                    {isSpanish ? "Notas del Pedido" : "Order Notes"}
                     <textarea
                       rows={4}
                       value={checkoutForm.notes}
                       onChange={(event) =>
                         setCheckoutForm((current) => ({ ...current, notes: event.target.value }))
                       }
-                      placeholder="Special requests, timing, packaging, or anything else we should know."
+                      placeholder={
+                        isSpanish
+                          ? "Solicitudes especiales, horario, empaque o cualquier otra cosa que debamos saber."
+                          : "Special requests, timing, packaging, or anything else we should know."
+                      }
                     />
                   </label>
                 </form>
 
                 {checkoutError ? (
                   <div className={styles.successMessage}>
-                    <strong>Checkout could not continue.</strong>
+                    <strong>{isSpanish ? "No se pudo continuar con el checkout." : "Checkout could not continue."}</strong>
                     <p>{checkoutError}</p>
                   </div>
                 ) : null}
@@ -653,7 +796,7 @@ export function CartContent() {
                     setCheckoutStep(1);
                   }}
                 >
-                  Back
+                  {isSpanish ? "Atrás" : "Back"}
                 </button>
               ) : (
                 <span />
@@ -668,16 +811,28 @@ export function CartContent() {
                     onClick={handleCheckoutContinue}
                   >
                     {isSendingShippingRequest
-                      ? "Sending Shipping Request..."
+                      ? isSpanish
+                        ? "Enviando Solicitud de Envío..."
+                        : "Sending Shipping Request..."
                       : isSubmittingPickupOrder
-                        ? "Placing Pickup Order..."
+                        ? isSpanish
+                          ? "Realizando Pedido para Recoger..."
+                          : "Placing Pickup Order..."
                         : isRedirectingToCheckout
-                          ? "Redirecting to Checkout..."
+                          ? isSpanish
+                            ? "Redirigiendo al Checkout..."
+                            : "Redirecting to Checkout..."
                           : checkoutForm.fulfillmentMethod === "shipping-request"
-                            ? "Submit Shipping Request"
+                            ? isSpanish
+                              ? "Enviar Solicitud de Envío"
+                              : "Submit Shipping Request"
                             : checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup"
-                              ? "Place Order and Pay at Pickup"
-                              : "Continue to Payment"}
+                              ? isSpanish
+                                ? "Hacer Pedido y Pagar al Recoger"
+                                : "Place Order and Pay at Pickup"
+                              : isSpanish
+                                ? "Continuar al Pago"
+                                : "Continue to Payment"}
                   </button>
                 </>
               ) : null}

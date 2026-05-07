@@ -1,0 +1,62 @@
+[
+  {
+    "orderId": "YP-MOUHEVFL",
+    "fullName": "Jonathan Mariscal",
+    "email": "jonmarpad@gmail.com",
+    "phone": "",
+    "pickupDate": "Unknown (recovered from email log)",
+    "orderSummary": "Recovered from email log export. Full item details were not available in the CSV.",
+    "notes": "Recovered from email log export. Order items, pickup date, phone number, and total were not included in the export.",
+    "totalDue": 0,
+    "createdAt": "2026-05-06 20:00:19.334468+00",
+    "status": "new",
+    "statusUpdatedAt": "2026-05-06 20:00:19.334468+00",
+    "pickedUpAt": "",
+    "followUpEmailSentAt": ""
+  },
+  {
+    "orderId": "YP-MOUGT4SI",
+    "fullName": "Luisa Cardenas",
+    "email": "colortito2217@gmail.com",
+    "phone": "",
+    "pickupDate": "Unknown (recovered from email log)",
+    "orderSummary": "Recovered from email log export. Full item details were not available in the CSV.",
+    "notes": "Recovered from email log export. Order items, pickup date, phone number, and total were not included in the export.",
+    "totalDue": 0,
+    "createdAt": "2026-05-06 19:43:24.843267+00",
+    "status": "new",
+    "statusUpdatedAt": "2026-05-06 19:43:24.843267+00",
+    "pickedUpAt": "",
+    "followUpEmailSentAt": ""
+  },
+  {
+    "orderId": "YP-MOUFSKRG",
+    "fullName": "Erik",
+    "email": "aurumnonvulgi@gmail.com",
+    "phone": "",
+    "pickupDate": "Unknown (recovered from email log)",
+    "orderSummary": "Recovered from email log export. Full item details were not available in the CSV.",
+    "notes": "Recovered from email log export. Order items, pickup date, phone number, and total were not included in the export.",
+    "totalDue": 0,
+    "createdAt": "2026-05-06 19:14:59.318488+00",
+    "status": "new",
+    "statusUpdatedAt": "2026-05-06 19:14:59.318488+00",
+    "pickedUpAt": "",
+    "followUpEmailSentAt": ""
+  },
+  {
+    "orderId": "YP-MOTQ8QDW",
+    "fullName": "Erik Nuno",
+    "email": "aurumnonvulgi@gmail.com",
+    "phone": "",
+    "pickupDate": "Unknown (recovered from email log)",
+    "orderSummary": "Recovered from email log export. Full item details were not available in the CSV.",
+    "notes": "Recovered from email log export. Order items, pickup date, phone number, and total were not included in the export.",
+    "totalDue": 0,
+    "createdAt": "2026-05-06 07:19:43.024378+00",
+    "status": "new",
+    "statusUpdatedAt": "2026-05-06 07:19:43.024378+00",
+    "pickedUpAt": "",
+    "followUpEmailSentAt": ""
+  }
+]

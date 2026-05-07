@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Manrope } from "next/font/google";
 import "./globals.css";
+import { LanguageProvider } from "../components/LanguageProvider";
 import { PwaRegister } from "../components/PwaRegister";
 
 const displayFont = Cormorant_Garamond({
@@ -42,8 +43,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${displayFont.variable} ${bodyFont.variable}`}>
       <body>
-        <PwaRegister />
-        {children}
+        <LanguageProvider>
+          <PwaRegister />
+          {children}
+        </LanguageProvider>
       </body>
     </html>
   );

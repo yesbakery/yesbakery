@@ -4,6 +4,7 @@ export type Product = {
   price: number;
   description: string;
   image: string;
+  minimumQuantity?: number;
 };
 
 export const SOURDOUGH_ID = "sourdough";
@@ -64,6 +65,7 @@ export const products: Product[] = [
     price: 6,
     description: "Tender spirals layered with cinnamon warmth and baked until beautifully golden.",
     image: "/assets/products/cinnamon.jpg",
+    minimumQuantity: 4,
   },
   {
     id: "empanada",
@@ -71,6 +73,7 @@ export const products: Product[] = [
     price: 3,
     description: "Golden pastry with a flaky finish that feels comforting, simple, and freshly baked.",
     image: "/assets/products/empanadas.PNG",
+    minimumQuantity: 4,
   },
   {
     id: "tropical-paradise-jam",
@@ -81,3 +84,65 @@ export const products: Product[] = [
     image: "/assets/products/jams.PNG",
   },
 ];
+
+const spanishProductNames: Record<string, string> = {
+  [SOURDOUGH_ID]: "Masa Madre Clásica",
+  "sourdough-raspberry-white-chocolate": "Masa Madre con Frambuesa y Chocolate Blanco",
+  "sourdough-blueberry-cream-cheese": "Masa Madre con Arándano y Queso Crema",
+  "sourdough-multi-grain": "Masa Madre Multigrano",
+  "sourdough-double-chocolate-chocolate-chips": "Masa Madre con Doble Chocolate y Chispas de Chocolate",
+  "sourdough-jalapeno-cheddar": "Masa Madre con Jalapeño y Queso Cheddar",
+  "quesadilla-salvadorena": "Quesadilla Salvadoreña",
+  "cinnamon-rolls": "Rollos de Canela",
+  empanada: "Empanada",
+  "tropical-paradise-jam": "Mermelada Paraíso Tropical",
+};
+
+const spanishProductDescriptions: Record<string, string> = {
+  [SOURDOUGH_ID]:
+    "Fermentada lentamente con una corteza crujiente y una miga aireada para mesas de todos los días y desayunos acogedores.",
+  "sourdough-raspberry-white-chocolate":
+    "Nuestro pan de masa madre de fermentación lenta con notas brillantes de frambuesa y bolsillos de chocolate blanco.",
+  "sourdough-blueberry-cream-cheese":
+    "Una variación suave y ligeramente ácida de masa madre con dulzura de arándano y cremosidad de queso crema.",
+  "sourdough-multi-grain":
+    "Un pan abundante de masa madre con acabado multigrano para más textura y un bocado más rústico.",
+  "sourdough-double-chocolate-chocolate-chips":
+    "Un pan rico de masa madre con doble chocolate y chispas de chocolate integradas en toda la pieza.",
+  "sourdough-jalapeno-cheddar":
+    "Un pan salado de masa madre horneado con jalapeño y queso cheddar para un sabor más intenso y artesanal.",
+  "quesadilla-salvadorena":
+    "Un clásico salvadoreño con interior suave y abundante, coronado con una superficie dorada con ajonjolí.",
+  "cinnamon-rolls": "Espirales tiernas con el calor de la canela, horneadas hasta quedar doradas y hermosas.",
+  empanada: "Pastel dorado con un acabado hojaldrado que se siente reconfortante, simple y recién horneado.",
+  "tropical-paradise-jam":
+    "Una mermelada de 4 onzas con piña, mango, fresas, cereza y frambuesa para una mezcla brillante y frutal.",
+};
+
+export function getProductById(productId: string) {
+  return products.find((product) => product.id === productId);
+}
+
+export function getMinimumQuantityForProduct(productId: string) {
+  return getProductById(productId)?.minimumQuantity || 1;
+}
+
+export function getLocalizedProductName(productId: string, fallbackName: string, language: "en" | "es") {
+  if (language === "es") {
+    return spanishProductNames[productId] || fallbackName;
+  }
+
+  return fallbackName;
+}
+
+export function getLocalizedProductDescription(
+  productId: string,
+  fallbackDescription: string,
+  language: "en" | "es",
+) {
+  if (language === "es") {
+    return spanishProductDescriptions[productId] || fallbackDescription;
+  }
+
+  return fallbackDescription;
+}

@@ -1,6 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import { useLanguage } from "@/components/LanguageProvider";
 
 export default function CheckoutCancelPage() {
+  const { language } = useLanguage();
+  const isSpanish = language === "es";
+
   return (
     <main
       style={{
@@ -23,7 +29,7 @@ export default function CheckoutCancelPage() {
         }}
       >
         <p style={{ color: "#ad6b48", fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase" }}>
-          Checkout canceled
+          {isSpanish ? "Checkout Cancelado" : "Checkout canceled"}
         </p>
         <h1
           style={{
@@ -34,11 +40,12 @@ export default function CheckoutCancelPage() {
             lineHeight: 0.95,
           }}
         >
-          Your cart is still waiting for you.
+          {isSpanish ? "Su carrito todavía lo está esperando." : "Your cart is still waiting for you."}
         </h1>
         <p style={{ color: "#6f5143", lineHeight: 1.7 }}>
-          No payment was completed. You can go back to the bakery page, adjust the cart, and try Stripe checkout
-          again whenever you are ready.
+          {isSpanish
+            ? "No se completó ningún pago. Puede volver a la página de la panadería, ajustar el carrito e intentar el checkout nuevamente cuando esté listo."
+            : "No payment was completed. You can go back to the bakery page, adjust the cart, and try Stripe checkout again whenever you are ready."}
         </p>
         <Link
           href="/cart"
@@ -52,7 +59,7 @@ export default function CheckoutCancelPage() {
             fontWeight: 700,
           }}
         >
-          Return to checkout
+          {isSpanish ? "Volver al Checkout" : "Return to checkout"}
         </Link>
       </section>
     </main>

@@ -20,6 +20,14 @@
   box-shadow: 0 18px 40px rgba(20, 12, 8, 0.16);
 }
 
+.siteCreditMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 .siteCreditLink {
   display: flex;
   align-items: center;
@@ -35,6 +43,49 @@
   width: 32px;
   height: 32px;
   object-fit: contain;
+}
+
+.siteContactLink,
+.contactPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.languageToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #6a4532;
+  box-shadow: 0 10px 24px rgba(113, 77, 54, 0.12);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.languageToggle strong {
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+}
+
+.siteContactLink {
+  color: rgba(255, 248, 244, 0.92);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.contactPill {
+  color: #6a4532;
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .embeddedHomePage {
@@ -532,29 +583,6 @@
   box-shadow: 0 20px 60px rgba(113, 77, 54, 0.08);
 }
 
-.shopSearch {
-  display: grid;
-  gap: 10px;
-}
-
-.shopSearchLabel {
-  color: #7a4b35;
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.shopSearch input {
-  width: 100%;
-  padding: 16px 18px;
-  border: 1px solid rgba(107, 68, 45, 0.14);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.9);
-  color: #4f2c1a;
-  font: inherit;
-}
-
 .shopFilters {
   display: flex;
   flex-wrap: wrap;
@@ -595,6 +623,8 @@
 }
 
 .homeFavoriteCard {
+  display: grid;
+  grid-template-rows: auto 1fr;
   border-radius: 26px;
 }
 
@@ -616,7 +646,8 @@
 }
 
 .homeFavoriteBody {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
   padding: 18px 18px 20px;
 }
@@ -675,6 +706,7 @@
   margin-top: 18px;
   align-items: center;
   justify-content: space-between;
+  margin-top: auto;
 }
 
 .sourdoughCallout {
@@ -718,6 +750,50 @@
   font-size: 0.84rem;
   font-weight: 800;
   letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.minimumOrderNote {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(122, 65, 37, 0.08);
+  color: #7a4125;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.shopCategorySection {
+  display: grid;
+  gap: 18px;
+  margin-top: 28px;
+}
+
+.shopCategoryDivider {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  color: #8f5d40;
+}
+
+.shopCategoryDivider::before,
+.shopCategoryDivider::after {
+  content: "";
+  height: 1px;
+  background: linear-gradient(90deg, rgba(107, 68, 45, 0), rgba(107, 68, 45, 0.18), rgba(107, 68, 45, 0));
+}
+
+.shopCategoryDivider span {
+  padding: 0 4px;
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 
@@ -770,6 +846,12 @@
   background: linear-gradient(135deg, #c47a45, #a6542d);
 }
 
+.qtyButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 .removeButton {
   padding: 8px 12px;
   border-radius: 999px;
@@ -816,6 +898,7 @@
 .cartItemInfo {
   display: grid;
   gap: 6px;
+  flex: 1;
 }
 
 .cartItem {
@@ -823,6 +906,21 @@
   align-items: center;
   justify-content: space-between;
   gap: 18px;
+}
+
+.cartItemImageWrap {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 20px;
+  background: #efd2c0;
+}
+
+.cartItemImageWrap :global(img) {
+  object-fit: contain;
+  padding: 8px;
 }
 
 .inclusionList {
@@ -1532,6 +1630,14 @@
     margin-left: 0;
   }
 
+  .contactPill {
+    display: none;
+  }
+
+  .languageToggle {
+    order: -1;
+  }
+
   .menuToggle {
     display: inline-flex;
   }
@@ -1699,6 +1805,10 @@
   .checkoutWizardFooter .submitButton {
     width: 100%;
     min-width: 0;
+  }
+
+  .siteCreditMeta {
+    justify-content: center;
   }
 
   .cartToast {

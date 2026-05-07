@@ -3,10 +3,13 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 function PickupSuccessContent() {
+  const { language } = useLanguage();
   const searchParams = useSearchParams();
   const orderId = searchParams.get("order_id") || "";
+  const isSpanish = language === "es";
 
   useEffect(() => {
     window.localStorage.removeItem("yesbakery-cart");
@@ -37,7 +40,7 @@ function PickupSuccessContent() {
         }}
       >
         <p style={{ color: "#ad6b48", fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase" }}>
-          Pickup Order Placed
+          {isSpanish ? "Pedido para Recoger Realizado" : "Pickup Order Placed"}
         </p>
         <h1
           style={{
@@ -48,18 +51,22 @@ function PickupSuccessContent() {
             lineHeight: 0.98,
           }}
         >
-          Your order is reserved for pickup.
+          {isSpanish ? "Su pedido quedó reservado para recoger." : "Your order is reserved for pickup."}
         </h1>
         <p style={{ color: "#6f5143", lineHeight: 1.7, margin: 0 }}>
-          You chose to order now and pay at pickup. We also emailed the order details to you and the bakery.
+          {isSpanish
+            ? "Eligió hacer su pedido ahora y pagar al recoger. También enviamos por correo los detalles del pedido a usted y a la panadería."
+            : "You chose to order now and pay at pickup. We also emailed the order details to you and the bakery."}
         </p>
         {orderId ? (
           <p style={{ color: "#5f311c", fontWeight: 800, margin: 0 }}>
-            Order ID: {orderId}
+            {isSpanish ? "ID del Pedido" : "Order ID"}: {orderId}
           </p>
         ) : null}
         <p style={{ color: "#6f5143", lineHeight: 1.7, margin: 0 }}>
-          Yes Bakery is located in Union City, California. Pickup details will be provided by email.
+          {isSpanish
+            ? "Yes Bakery está ubicada en Union City, California. Los detalles para recoger se le enviarán por correo electrónico."
+            : "Yes Bakery is located in Union City, California. Pickup details will be provided by email."}
         </p>
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginTop: "8px" }}>
@@ -76,7 +83,7 @@ function PickupSuccessContent() {
               fontWeight: 700,
             }}
           >
-            Continue Shopping
+            {isSpanish ? "Seguir Comprando" : "Continue Shopping"}
           </Link>
           <Link
             href="/about"
@@ -91,7 +98,7 @@ function PickupSuccessContent() {
               fontWeight: 700,
             }}
           >
-            Contact the Bakery
+            {isSpanish ? "Contactar a la Panadería" : "Contact the Bakery"}
           </Link>
         </div>
       </section>

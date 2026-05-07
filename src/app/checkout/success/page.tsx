@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
+import { useLanguage } from "@/components/LanguageProvider";
 
 type SessionDetails = {
   sessionId: string;
@@ -67,10 +68,12 @@ function formatFulfillmentMethod(value: string) {
 }
 
 function CheckoutSuccessContent() {
+  const { language } = useLanguage();
   const searchParams = useSearchParams();
   const sessionId = useMemo(() => searchParams.get("session_id") || "", [searchParams]);
   const [sessionDetails, setSessionDetails] = useState<SessionDetails | null>(null);
   const [loadError, setLoadError] = useState("");
+  const isSpanish = language === "es";
 
   useEffect(() => {
     window.localStorage.removeItem("yesbakery-cart");
@@ -90,7 +93,12 @@ function CheckoutSuccessContent() {
         const payload = (await response.json()) as SessionDetails & { error?: string };
 
         if (!response.ok) {
-          throw new Error(payload.error || "Stripe payment details could not be loaded.");
+          throw new Error(
+            payload.error ||
+              (isSpanish
+                ? "No se pudieron cargar los detalles del pago de Stripe."
+                : "Stripe payment details could not be loaded."),
+          );
         }
 
         if (isMounted) {
@@ -98,7 +106,13 @@ function CheckoutSuccessContent() {
         }
       } catch (error) {
         if (isMounted) {
-          setLoadError(error instanceof Error ? error.message : "Stripe payment details could not be loaded.");
+          setLoadError(
+            error instanceof Error
+              ? error.message
+              : isSpanish
+                ? "No se pudieron cargar los detalles del pago de Stripe."
+                : "Stripe payment details could not be loaded.",
+          );
         }
       }
     }
@@ -108,7 +122,7 @@ function CheckoutSuccessContent() {
     return () => {
       isMounted = false;
     };
-  }, [sessionId]);
+  }, [isSpanish, sessionId]);
 
   return (
     <main
@@ -132,7 +146,7 @@ function CheckoutSuccessContent() {
         }}
       >
         <p style={{ color: "#ad6b48", fontWeight: 800, letterSpacing: "0.2em", textTransform: "uppercase" }}>
-          Payment complete
+          {isSpanish ? "Pago Completado" : "Payment complete"}
         </p>
         <h1
           style={{
@@ -143,10 +157,12 @@ function CheckoutSuccessContent() {
             lineHeight: 0.95,
           }}
         >
-          Thank you. Your order has been paid.
+          {isSpanish ? "Gracias. Su pedido ha sido pagado." : "Thank you. Your order has been paid."}
         </h1>
         <p style={{ color: "#6f5143", lineHeight: 1.7 }}>
-          Stripe confirmed the payment successfully. The cart and checkout form were cleared for the next order.
+          {isSpanish
+            ? "Stripe confirmó el pago con éxito. El carrito y el formulario de checkout se limpiaron para el próximo pedido."
+            : "Stripe confirmed the payment successfully. The cart and checkout form were cleared for the next order."}
         </p>
 
         {sessionDetails ? (
@@ -161,35 +177,43 @@ function CheckoutSuccessContent() {
             }}
           >
             <div style={{ display: "grid", gap: "8px" }}>
-              <strong style={{ color: "#64351e" }}>Order summary</strong>
-              <span style={{ color: "#6f5143" }}>{sessionDetails.orderSummary || "Stripe order recorded."}</span>
+              <strong style={{ color: "#64351e" }}>{isSpanish ? "Resumen del pedido" : "Order summary"}</strong>
+              <span style={{ color: "#6f5143" }}>
+                {sessionDetails.orderSummary || (isSpanish ? "Pedido registrado en Stripe." : "Stripe order recorded.")}
+              </span>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "14px" }}>
               <div style={{ display: "grid", gap: "4px" }}>
-                <span style={{ color: "#94654e", fontWeight: 700 }}>Customer</span>
-                <strong style={{ color: "#5f311c" }}>{sessionDetails.customerName || "Not provided"}</strong>
+                <span style={{ color: "#94654e", fontWeight: 700 }}>{isSpanish ? "Cliente" : "Customer"}</span>
+                <strong style={{ color: "#5f311c" }}>
+                  {sessionDetails.customerName || (isSpanish ? "No proporcionado" : "Not provided")}
+                </strong>
               </div>
               <div style={{ display: "grid", gap: "4px" }}>
                 <span style={{ color: "#94654e", fontWeight: 700 }}>Email</span>
-                <strong style={{ color: "#5f311c" }}>{sessionDetails.customerEmail || "Not provided"}</strong>
+                <strong style={{ color: "#5f311c" }}>
+                  {sessionDetails.customerEmail || (isSpanish ? "No proporcionado" : "Not provided")}
+                </strong>
               </div>
               <div style={{ display: "grid", gap: "4px" }}>
-                <span style={{ color: "#94654e", fontWeight: 700 }}>Phone</span>
-                <strong style={{ color: "#5f311c" }}>{sessionDetails.phone || "Not provided"}</strong>
+                <span style={{ color: "#94654e", fontWeight: 700 }}>{isSpanish ? "Teléfono" : "Phone"}</span>
+                <strong style={{ color: "#5f311c" }}>
+                  {sessionDetails.phone || (isSpanish ? "No proporcionado" : "Not provided")}
+                </strong>
               </div>
               <div style={{ display: "grid", gap: "4px" }}>
-                <span style={{ color: "#94654e", fontWeight: 700 }}>Pickup date</span>
+                <span style={{ color: "#94654e", fontWeight: 700 }}>{isSpanish ? "Fecha de Recogida" : "Pickup date"}</span>
                 <strong style={{ color: "#5f311c" }}>{formatPickupDate(sessionDetails.pickupDate)}</strong>
               </div>
               <div style={{ display: "grid", gap: "4px" }}>
-                <span style={{ color: "#94654e", fontWeight: 700 }}>Fulfillment</span>
+                <span style={{ color: "#94654e", fontWeight: 700 }}>{isSpanish ? "Entrega" : "Fulfillment"}</span>
                 <strong style={{ color: "#5f311c" }}>{formatFulfillmentMethod(sessionDetails.fulfillmentMethod)}</strong>
               </div>
             </div>
 
             <div style={{ display: "grid", gap: "10px" }}>
-              <strong style={{ color: "#64351e" }}>Paid items</strong>
+              <strong style={{ color: "#64351e" }}>{isSpanish ? "Artículos Pagados" : "Paid items"}</strong>
               {sessionDetails.lineItems.map((item, index) => (
                 <div
                   key={`${item.description}-${index}`}
@@ -212,7 +236,7 @@ function CheckoutSuccessContent() {
             </div>
 
             <div style={{ display: "grid", gap: "8px" }}>
-              <strong style={{ color: "#64351e" }}>Total paid</strong>
+              <strong style={{ color: "#64351e" }}>{isSpanish ? "Total Pagado" : "Total paid"}</strong>
               <span style={{ color: "#5f311c", fontSize: "1.25rem", fontWeight: 800 }}>
                 {formatAmount(sessionDetails.amountTotal)}
               </span>
@@ -220,14 +244,14 @@ function CheckoutSuccessContent() {
 
             {sessionDetails.notes && sessionDetails.notes !== "None" ? (
               <div style={{ display: "grid", gap: "8px" }}>
-                <strong style={{ color: "#64351e" }}>Order notes</strong>
+                <strong style={{ color: "#64351e" }}>{isSpanish ? "Notas del Pedido" : "Order notes"}</strong>
                 <span style={{ color: "#6f5143", lineHeight: 1.7 }}>{sessionDetails.notes}</span>
               </div>
             ) : null}
 
             {sessionDetails.shippingRequest && sessionDetails.shippingRequest !== "None" ? (
               <div style={{ display: "grid", gap: "8px" }}>
-                <strong style={{ color: "#64351e" }}>Shipping request</strong>
+                <strong style={{ color: "#64351e" }}>{isSpanish ? "Solicitud de Envío" : "Shipping request"}</strong>
                 <span style={{ color: "#6f5143", lineHeight: 1.7 }}>{sessionDetails.shippingRequest}</span>
               </div>
             ) : null}
@@ -254,7 +278,7 @@ function CheckoutSuccessContent() {
               color: "#6f5143",
             }}
           >
-            Loading Stripe payment details...
+            {isSpanish ? "Cargando detalles del pago de Stripe..." : "Loading Stripe payment details..."}
           </div>
         )}
 
@@ -270,7 +294,7 @@ function CheckoutSuccessContent() {
               fontWeight: 700,
             }}
           >
-            Back to bakery
+            {isSpanish ? "Volver a la Panadería" : "Back to bakery"}
           </Link>
           <Link
             href="/shop"
@@ -283,7 +307,7 @@ function CheckoutSuccessContent() {
               fontWeight: 700,
             }}
           >
-            Start another order
+            {isSpanish ? "Comenzar Otro Pedido" : "Start another order"}
           </Link>
         </div>
       </section>

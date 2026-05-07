@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
-import { products } from "../../../lib/catalog";
+import { getMinimumQuantityForProduct, products } from "../../../lib/catalog";
 import { recordPickupOrder } from "../../../lib/pickup-orders";
 
 type PickupOrderPayload = {
@@ -83,8 +83,9 @@ export async function POST(request: NextRequest) {
       const productId = clean(item.id);
       const quantity = Number(item.quantity) || 0;
       const product = products.find((entry) => entry.id === productId);
+      const minimumQuantity = getMinimumQuantityForProduct(productId);
 
-      if (!product || quantity <= 0) {
+      if (!product || quantity <= 0 || quantity < minimumQuantity) {
         return null;
       }
 
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
   }>;
 
   if (cart.length === 0) {
-    return badRequest("Your cart is empty.");
+    return badRequest("Your cart is empty or has items below their required minimum quantity.");
   }
 
   const orderSummary = cart.map((item) => `${item.quantity}x ${item.product.name}`).join(" | ");
@@ -110,18 +111,6 @@ export async function POST(request: NextRequest) {
   const resend = new Resend(resendApiKey);
 
   try {
-    await recordPickupOrder({
-      orderId,
-      fullName,
-      email,
-      phone,
-      pickupDate,
-      orderSummary,
-      notes,
-      totalDue,
-      createdAt: new Date().toISOString(),
-    });
-
     await resend.emails.send({
       from: resendFromEmail,
       to: "yesbakery@gmail.com",
@@ -159,6 +148,22 @@ export async function POST(request: NextRequest) {
         ${notes ? `<p><strong>Order notes:</strong> ${notes.replace(/\n/g, "<br />")}</p>` : ""}
       `,
     });
+
+    try {
+      await recordPickupOrder({
+        orderId,
+        fullName,
+        email,
+        phone,
+        pickupDate,
+        orderSummary,
+        notes,
+        totalDue,
+        createdAt: new Date().toISOString(),
+      });
+    } catch (recordError) {
+      console.error("Pickup order could not be recorded in storage.", recordError);
+    }
   } catch {
     return badRequest("We couldn't place your pickup order right now. Please try again.", 500);
   }

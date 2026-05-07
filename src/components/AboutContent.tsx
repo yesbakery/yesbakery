@@ -3,13 +3,16 @@
 import { FormEvent, useState } from "react";
 import Image from "next/image";
 import styles from "../app/page.module.css";
+import { useLanguage } from "./LanguageProvider";
 import { ContactForm, initialContactForm } from "../lib/storefront";
 
 export function AboutContent() {
+  const { language } = useLanguage();
   const [contactForm, setContactForm] = useState<ContactForm>(initialContactForm);
   const [contactError, setContactError] = useState("");
   const [contactSuccessMessage, setContactSuccessMessage] = useState("");
   const [isSendingContactForm, setIsSendingContactForm] = useState(false);
+  const isSpanish = language === "es";
 
   async function handleContactSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -30,15 +33,25 @@ export function AboutContent() {
       const payload = (await response.json()) as { ok?: boolean; error?: string };
 
       if (!response.ok || !payload.ok) {
-        throw new Error(payload.error || "We couldn't send your message right now.");
+        throw new Error(
+          payload.error || (isSpanish ? "No pudimos enviar su mensaje en este momento." : "We couldn't send your message right now."),
+        );
       }
 
       setContactSuccessMessage(
-        "Thank you. Your message was sent to our team and we will follow up about your order, shipping request, or special event details.",
+        isSpanish
+          ? "Gracias. Su mensaje fue enviado a nuestro equipo y le daremos seguimiento sobre su pedido, solicitud de envío o detalles de su evento especial."
+          : "Thank you. Your message was sent to our team and we will follow up about your order, shipping request, or special event details.",
       );
       setContactForm(initialContactForm);
     } catch (error) {
-      setContactError(error instanceof Error ? error.message : "We couldn't send your message right now.");
+      setContactError(
+        error instanceof Error
+          ? error.message
+          : isSpanish
+            ? "No pudimos enviar su mensaje en este momento."
+            : "We couldn't send your message right now.",
+      );
     } finally {
       setIsSendingContactForm(false);
     }
@@ -49,15 +62,17 @@ export function AboutContent() {
       <section className={styles.storySection}>
         <div className={styles.storyCard}>
           <div className={styles.storyText}>
-            <p className={styles.kicker}>About Us</p>
-            <h2>Baked with care, memory, and a love for sharing good food</h2>
+            <p className={styles.kicker}>{isSpanish ? "Sobre Nosotros" : "About Us"}</p>
+            <h2>{isSpanish ? "Horneado con cuidado, memoria y amor por compartir buena comida" : "Baked with care, memory, and a love for sharing good food"}</h2>
             <p>
-              Yes Bakery & More is built around warm breads, family-table pastries, and the kind of homemade
-              comfort that invites people to slow down and gather.
+              {isSpanish
+                ? "Yes Bakery & More gira alrededor de panes cálidos, repostería para la mesa familiar y esa comodidad casera que invita a bajar el ritmo y reunirse."
+                : "Yes Bakery & More is built around warm breads, family-table pastries, and the kind of homemade comfort that invites people to slow down and gather."}
             </p>
             <p>
-              Pickup is based in Union City, California. Shipping can be reviewed case by case, depending on the
-              item and destination.
+              {isSpanish
+                ? "La recogida se realiza en Union City, California. El envío puede revisarse caso por caso, según el producto y el destino."
+                : "Pickup is based in Union City, California. Shipping can be reviewed case by case, depending on the item and destination."}
             </p>
           </div>
 
@@ -76,24 +91,26 @@ export function AboutContent() {
       <section className={styles.section}>
         <div className={styles.storyCard}>
           <div className={styles.storyText}>
-            <p className={styles.kicker}>Contact</p>
-            <h2>Planning a special order or hoping to arrange shipping?</h2>
+            <p className={styles.kicker}>{isSpanish ? "Contacto" : "Contact"}</p>
+            <h2>{isSpanish ? "¿Está planeando un pedido especial o desea coordinar un envío?" : "Planning a special order or hoping to arrange shipping?"}</h2>
             <p>
-              Reach out for celebration orders, custom requests, larger bakery pickups, or shipping questions. We
-              will gladly review the details and let you know what can be arranged.
+              {isSpanish
+                ? "Escríbanos para pedidos de celebración, solicitudes personalizadas, pedidos grandes para recoger o preguntas sobre envíos. Con gusto revisaremos los detalles y le diremos qué podemos organizar."
+                : "Reach out for celebration orders, custom requests, larger bakery pickups, or shipping questions. We will gladly review the details and let you know what can be arranged."}
             </p>
             <p>
-              If you already know what you want to order, you can also use the cart page to request a shipping
-              arrangement directly from your selected items.
+              {isSpanish
+                ? "Si ya sabe lo que desea pedir, también puede usar la página del carrito para solicitar un arreglo de envío directamente desde sus productos seleccionados."
+                : "If you already know what you want to order, you can also use the cart page to request a shipping arrangement directly from your selected items."}
             </p>
           </div>
 
           <div className={styles.checkoutCard}>
-            <p className={styles.kicker}>Send a Message</p>
-            <h2>Let us know what you need</h2>
+            <p className={styles.kicker}>{isSpanish ? "Enviar Mensaje" : "Send a Message"}</p>
+            <h2>{isSpanish ? "Cuéntenos qué necesita" : "Let us know what you need"}</h2>
             <form className={styles.checkoutForm} onSubmit={handleContactSubmit}>
               <label>
-                Full Name
+                {isSpanish ? "Nombre Completo" : "Full Name"}
                 <input
                   type="text"
                   value={contactForm.fullName}
@@ -105,7 +122,7 @@ export function AboutContent() {
               </label>
 
               <label>
-                Email
+                {isSpanish ? "Correo Electrónico" : "Email"}
                 <input
                   type="email"
                   value={contactForm.email}
@@ -117,7 +134,7 @@ export function AboutContent() {
               </label>
 
               <label>
-                Phone
+                {isSpanish ? "Teléfono" : "Phone"}
                 <input
                   type="tel"
                   value={contactForm.phone}
@@ -128,33 +145,37 @@ export function AboutContent() {
               </label>
 
               <label>
-                Message
+                {isSpanish ? "Mensaje" : "Message"}
                 <textarea
                   rows={5}
                   value={contactForm.message}
                   onChange={(event) =>
                     setContactForm((current) => ({ ...current, message: event.target.value }))
                   }
-                  placeholder="Tell us about your event date, quantity, flavors, pickup timing, or shipping request."
+                  placeholder={
+                    isSpanish
+                      ? "Cuéntenos sobre la fecha de su evento, cantidad, sabores, horario de recogida o solicitud de envío."
+                      : "Tell us about your event date, quantity, flavors, pickup timing, or shipping request."
+                  }
                   required
                 />
               </label>
 
               <button type="submit" className={styles.submitButton}>
-                {isSendingContactForm ? "Sending..." : "Send Message"}
+                {isSendingContactForm ? (isSpanish ? "Enviando..." : "Sending...") : isSpanish ? "Enviar Mensaje" : "Send Message"}
               </button>
             </form>
 
             {contactError ? (
               <div className={styles.successMessage}>
-                <strong>Message could not be sent.</strong>
+                <strong>{isSpanish ? "No se pudo enviar el mensaje." : "Message could not be sent."}</strong>
                 <p>{contactError}</p>
               </div>
             ) : null}
 
             {contactSuccessMessage ? (
               <div className={styles.successMessage}>
-                <strong>Message received.</strong>
+                <strong>{isSpanish ? "Mensaje recibido." : "Message received."}</strong>
                 <p>{contactSuccessMessage}</p>
               </div>
             ) : null}

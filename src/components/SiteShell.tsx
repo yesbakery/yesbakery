@@ -5,18 +5,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PropsWithChildren, useEffect, useState } from "react";
 import styles from "../app/page.module.css";
+import { useLanguage } from "./LanguageProvider";
 import { CART_UPDATED_EVENT, getStoredCartItemCount } from "../lib/storefront";
-
-const navItems = [
-  { href: "/", label: "Home" },
-  { href: "/shop", label: "Shop" },
-  { href: "/about", label: "About Us" },
-];
 
 export function SiteShell({ children }: PropsWithChildren) {
   const pathname = usePathname();
+  const { language, setLanguage } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [itemCount, setItemCount] = useState(0);
+  const isSpanish = language === "es";
+  const navItems = [
+    { href: "/", label: isSpanish ? "Inicio" : "Home" },
+    { href: "/shop", label: isSpanish ? "Tienda" : "Shop" },
+    { href: "/about", label: isSpanish ? "Sobre Nosotros" : "About Us" },
+  ];
 
   useEffect(() => {
     const syncCartCount = () => {
@@ -52,7 +54,25 @@ export function SiteShell({ children }: PropsWithChildren) {
           </Link>
 
           <div className={styles.navActions}>
-            <Link className={styles.mobileCartButton} href="/cart" aria-label={`Cart with ${itemCount} items`}>
+            <a className={styles.contactPill} href="tel:5103298786">
+              {isSpanish ? "Llame o escriba al 510-329-8786" : "Call or Text 510-329-8786"}
+            </a>
+
+            <button
+              type="button"
+              className={styles.languageToggle}
+              onClick={() => setLanguage(isSpanish ? "en" : "es")}
+              aria-label={isSpanish ? "Switch to English" : "Cambiar a español"}
+            >
+              <span aria-hidden="true">{isSpanish ? "🇺🇸" : "🇪🇸"}</span>
+              <strong>{isSpanish ? "EN" : "ES"}</strong>
+            </button>
+
+            <Link
+              className={styles.mobileCartButton}
+              href="/cart"
+              aria-label={`${isSpanish ? "Carrito" : "Cart"} with ${itemCount} items`}
+            >
               <svg viewBox="0 0 24 24" aria-hidden="true" className={styles.mobileCartIcon}>
                 <path
                   d="M3 5h2l1.2 6.2A2 2 0 0 0 8.2 13H17a2 2 0 0 0 1.9-1.4L21 7H7.1"
@@ -109,13 +129,13 @@ export function SiteShell({ children }: PropsWithChildren) {
               ))}
 
               <Link className={styles.mobileCartBadge} href="/cart">
-                Cart
+                {isSpanish ? "Carrito" : "Cart"}
                 <span>{itemCount}</span>
               </Link>
             </nav>
 
             <Link className={styles.cartBadge} href="/cart">
-              Cart
+              {isSpanish ? "Carrito" : "Cart"}
               <span>{itemCount}</span>
             </Link>
           </div>
@@ -124,22 +144,27 @@ export function SiteShell({ children }: PropsWithChildren) {
         {children}
 
         <footer className={styles.siteCredit}>
-          <a
-            href="https://webrandca.com"
-            target="_blank"
-            rel="noreferrer"
-            className={styles.siteCreditLink}
-            aria-label="Website created by WeBrandCA"
-          >
-            <span>Website created by WeBrandCA</span>
-            <Image
-              src="/WEBrandLogo-f.png"
-              alt="WeBrandCA logo"
-              width={840}
-              height={806}
-              className={styles.siteCreditLogo}
-            />
-          </a>
+          <div className={styles.siteCreditMeta}>
+            <a className={styles.siteContactLink} href="tel:5103298786">
+              {isSpanish ? "Llame o escriba al 510-329-8786" : "Call or Text 510-329-8786"}
+            </a>
+            <a
+              href="https://webrandca.com"
+              target="_blank"
+              rel="noreferrer"
+              className={styles.siteCreditLink}
+              aria-label="Website created by WeBrandCA"
+            >
+              <span>Website created by WeBrandCA</span>
+              <Image
+                src="/WEBrandLogo-f.png"
+                alt="WeBrandCA logo"
+                width={840}
+                height={806}
+                className={styles.siteCreditLogo}
+              />
+            </a>
+          </div>
         </footer>
       </div>
     </main>
