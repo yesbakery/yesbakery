@@ -250,7 +250,9 @@ export function ShopContent() {
                         <h3>{productName}</h3>
                         <span className={styles.price}>{currency.format(product.price)}</span>
                       </div>
-                      {product.id === "cinnamon-rolls" || product.id === "empanada" ? (
+                      {product.id === "cinnamon-rolls" ||
+                      product.id === "empanada" ||
+                      product.id === "gluten-free-chocolate-chip-cookies" ? (
                         <div className={styles.eachPricePill}>{isSpanish ? "Cada Uno" : "Per Each"}</div>
                       ) : null}
                       <p>{productDescription}</p>

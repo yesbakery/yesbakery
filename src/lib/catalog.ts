@@ -76,6 +76,15 @@ export const products: Product[] = [
     minimumQuantity: 4,
   },
   {
+    id: "gluten-free-chocolate-chip-cookies",
+    name: "Gluten-Free Chocolate Chip Cookies",
+    price: 3,
+    description:
+      "Can't eat gluten? You can still enjoy a warm, soft, chocolate chip cookie. Freshly baked, loaded with chocolate chips, and made with love because gluten-free should still taste amazing.",
+    image: "/assets/products/gluten-free-chocolate-chip-cookies.jpeg",
+    minimumQuantity: 4,
+  },
+  {
     id: "tropical-paradise-jam",
     name: "Tropical Paradise Jam",
     price: 5,
@@ -95,6 +104,7 @@ const spanishProductNames: Record<string, string> = {
   "quesadilla-salvadorena": "Quesadilla Salvadoreña",
   "cinnamon-rolls": "Rollos de Canela",
   empanada: "Empanada",
+  "gluten-free-chocolate-chip-cookies": "Galletas de Chispas de Chocolate Sin Gluten",
   "tropical-paradise-jam": "Mermelada Paraíso Tropical",
 };
 
@@ -116,6 +126,8 @@ const spanishProductDescriptions: Record<string, string> = {
   "cinnamon-rolls": "Espirales tiernas con el calor de la canela, horneadas hasta quedar doradas y hermosas.",
   empanada:
     "Pastel dorado relleno de cajeta, un caramelo mexicano delicioso, con un acabado hojaldrado y recién horneado.",
+  "gluten-free-chocolate-chip-cookies":
+    "No puede comer gluten? Aun puede disfrutar una galleta tibia, suave y con chispas de chocolate. Horneadas frescas, cargadas de chocolate y hechas con amor porque sin gluten tambien debe saber increible.",
   "tropical-paradise-jam":
     "Una mermelada de 4 onzas con piña, mango, fresas, cereza y frambuesa para una mezcla brillante y frutal.",
 };

@@ -10,6 +10,7 @@ export const STRIPE_PRICE_ENV_KEYS = {
   "quesadilla-salvadorena": "STRIPE_PRICE_QUESADILLA_SALVADORENA",
   "cinnamon-rolls": "STRIPE_PRICE_CINNAMON_ROLLS",
   empanada: "STRIPE_PRICE_EMPANADA",
+  "gluten-free-chocolate-chip-cookies": "STRIPE_PRICE_GLUTEN_FREE_CHOCOLATE_CHIP_COOKIES",
   "tropical-paradise-jam": "STRIPE_PRICE_TROPICAL_PARADISE_JAM",
 } as const;
 
