@@ -8,6 +8,42 @@ export const defaultPickupScheduleSettings: PickupScheduleSettings = {
   blockSunday: false,
 };
 
+const PACIFIC_TIME_ZONE = "America/Los_Angeles";
+const PACIFIC_PARTS_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  timeZone: PACIFIC_TIME_ZONE,
+  weekday: "short",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
+const weekdayToIndex: Record<string, number> = {
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+};
+
+function getPacificParts(referenceDate = new Date()) {
+  const parts = PACIFIC_PARTS_FORMATTER.formatToParts(referenceDate);
+  const lookup = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+
+  return {
+    weekday: weekdayToIndex[lookup.weekday] ?? 0,
+    year: Number(lookup.year),
+    month: Number(lookup.month),
+    day: Number(lookup.day),
+    hour: Number(lookup.hour),
+    minute: Number(lookup.minute),
+  };
+}
+
 function toLocalDateString(date: Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -20,6 +56,43 @@ function startOfToday() {
   const date = new Date();
   date.setHours(0, 0, 0, 0);
   return date;
+}
+
+function toDateStringFromParts(parts: { year: number; month: number; day: number }) {
+  return `${parts.year}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}`;
+}
+
+function addDaysToDateString(dateString: string, daysToAdd: number) {
+  const [year, month, day] = dateString.split("-").map(Number);
+  const utcDate = new Date(Date.UTC(year, month - 1, day));
+  utcDate.setUTCDate(utcDate.getUTCDate() + daysToAdd);
+
+  return `${utcDate.getUTCFullYear()}-${String(utcDate.getUTCMonth() + 1).padStart(2, "0")}-${String(utcDate.getUTCDate()).padStart(2, "0")}`;
+}
+
+export function getNextAvailableSaturdayPickupDate(
+  settings: PickupScheduleSettings = defaultPickupScheduleSettings,
+  referenceDate = new Date(),
+) {
+  if (settings.blockSaturday) {
+    return "";
+  }
+
+  const pacificParts = getPacificParts(referenceDate);
+  const todayString = toDateStringFromParts(pacificParts);
+  let daysUntilSaturday = (6 - pacificParts.weekday + 7) % 7;
+  const isPastThursdayCutoff =
+    pacificParts.weekday > 4 || (pacificParts.weekday === 4 && pacificParts.hour >= 18);
+
+  if (isPastThursdayCutoff) {
+    if (daysUntilSaturday === 0) {
+      daysUntilSaturday = 7;
+    } else {
+      daysUntilSaturday += 7;
+    }
+  }
+
+  return addDaysToDateString(todayString, daysUntilSaturday);
 }
 
 export function isPickupDayAllowed(day: number, settings: PickupScheduleSettings = defaultPickupScheduleSettings) {
@@ -41,15 +114,20 @@ export function getEarliestShippingDate() {
 }
 
 export function getEarliestPickupDate(settings: PickupScheduleSettings = defaultPickupScheduleSettings) {
-  if (settings.blockSaturday && settings.blockSunday) {
+  const saturdayDate = getNextAvailableSaturdayPickupDate(settings);
+
+  if (saturdayDate) {
+    return saturdayDate;
+  }
+
+  if (settings.blockSunday) {
     return "";
   }
 
   const date = startOfToday();
   date.setDate(date.getDate() + 2);
-
   for (let index = 0; index < 366; index += 1) {
-    if (isPickupDayAllowed(date.getDay(), settings)) {
+    if (date.getDay() === 0 && !settings.blockSunday) {
       return toLocalDateString(date);
     }
 
@@ -76,7 +154,11 @@ export function getPickupDateOptions(
   const cursor = new Date(`${earliestPickupDate}T00:00:00`);
 
   while (options.length < limit) {
-    if (isPickupDayAllowed(cursor.getDay(), settings)) {
+    if (!settings.blockSaturday) {
+      if (cursor.getDay() === 6) {
+        options.push(toLocalDateString(cursor));
+      }
+    } else if (!settings.blockSunday && cursor.getDay() === 0) {
       options.push(toLocalDateString(cursor));
     }
 
@@ -105,5 +187,9 @@ export function isPickupDateValid(
   }
 
   const pickupDay = new Date(`${value}T00:00:00`).getDay();
-  return isPickupDayAllowed(pickupDay, settings);
+  if (!settings.blockSaturday) {
+    return pickupDay === 6;
+  }
+
+  return pickupDay === 0 && !settings.blockSunday;
 }

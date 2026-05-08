@@ -12,22 +12,19 @@ import {
   Product,
 } from "../lib/catalog";
 import { useLanguage } from "./LanguageProvider";
+import { defaultPickupScheduleSettings, getNextAvailableSaturdayPickupDate, PickupScheduleSettings } from "../lib/pickup-scheduling";
 import { CartItem, currency, readStoredCart, saveStoredCart } from "../lib/storefront";
 
 type ShopFilter = "all" | "sourdough" | "treats" | "jams";
 
 export function ShopContent() {
   const { language } = useLanguage();
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => readStoredCart());
   const [activeFilter, setActiveFilter] = useState<ShopFilter>("all");
   const [cartNotice, setCartNotice] = useState<{ id: number; message: string } | null>(null);
-  const [hasLoadedCart, setHasLoadedCart] = useState(false);
+  const [hasLoadedCart] = useState(true);
+  const [pickupScheduleSettings, setPickupScheduleSettings] = useState<PickupScheduleSettings>(defaultPickupScheduleSettings);
   const isSpanish = language === "es";
-
-  useEffect(() => {
-    setCart(readStoredCart());
-    setHasLoadedCart(true);
-  }, []);
 
   useEffect(() => {
     if (!hasLoadedCart) {
@@ -36,6 +33,33 @@ export function ShopContent() {
 
     saveStoredCart(cart);
   }, [cart, hasLoadedCart]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadStorefrontSettings() {
+      try {
+        const response = await fetch("/api/storefront-settings", {
+          cache: "no-store",
+        });
+        const payload = (await response.json()) as { settings?: PickupScheduleSettings };
+
+        if (isMounted && payload.settings) {
+          setPickupScheduleSettings(payload.settings);
+        }
+      } catch {
+        if (isMounted) {
+          setPickupScheduleSettings(defaultPickupScheduleSettings);
+        }
+      }
+    }
+
+    void loadStorefrontSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!cartNotice) {
@@ -157,8 +181,43 @@ export function ShopContent() {
     ].filter((section) => section.items.length > 0);
   }, [activeFilter, filteredProducts, isSpanish]);
 
+  const nextSaturdayPickupDate = useMemo(
+    () => getNextAvailableSaturdayPickupDate(pickupScheduleSettings),
+    [pickupScheduleSettings],
+  );
+
+  const nextSaturdayPickupLabel = useMemo(() => {
+    if (!nextSaturdayPickupDate) {
+      return isSpanish ? "No hay sabados disponibles en este momento." : "No Saturday pickup dates are available right now.";
+    }
+
+    return new Intl.DateTimeFormat(isSpanish ? "es-US" : "en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+      timeZone: "America/Los_Angeles",
+    }).format(new Date(`${nextSaturdayPickupDate}T12:00:00`));
+  }, [isSpanish, nextSaturdayPickupDate]);
+
   return (
     <>
+      <div className={styles.floatingPickupBanner}>
+        <strong>
+          {isSpanish ? "Pedidos para recoger el sabado" : "Orders for Saturday pickup"}
+        </strong>
+        <span>
+          {isSpanish
+            ? `La proxima fecha disponible es ${nextSaturdayPickupLabel}.`
+            : `The next available Saturday pickup date is ${nextSaturdayPickupLabel}.`}
+        </span>
+        <em>
+          {isSpanish
+            ? "Los pedidos para este sabado cierran el jueves anterior a las 6:00 PM, hora del Pacifico."
+            : "Orders for this Saturday close the prior Thursday at 6:00 PM Pacific time."}
+        </em>
+      </div>
+
       <section className={styles.hero}>
         <div className={styles.heroCopy}>
           <p className={styles.kicker}>{isSpanish ? "Tienda" : "Shop"}</p>

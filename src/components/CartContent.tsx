@@ -28,20 +28,6 @@ import {
 
 type CheckoutStep = 1 | 2;
 
-async function readJsonResponse<T>(response: Response) {
-  const text = await response.text();
-
-  if (!text) {
-    throw new Error("The server returned an empty response.");
-  }
-
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    throw new Error("The server returned an invalid response.");
-  }
-}
-
 export function CartContent() {
   const { language } = useLanguage();
   const overlayRef = useRef<HTMLDivElement | null>(null);
@@ -50,8 +36,9 @@ export function CartContent() {
   const [checkoutError, setCheckoutError] = useState("");
   const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false);
   const [isSendingShippingRequest, setIsSendingShippingRequest] = useState(false);
-  const [isSubmittingPickupOrder, setIsSubmittingPickupOrder] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isPickupAcknowledgementOpen, setIsPickupAcknowledgementOpen] = useState(false);
+  const [pickupAcknowledged, setPickupAcknowledged] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>(1);
   const [hasLoadedCheckoutState, setHasLoadedCheckoutState] = useState(false);
   const [pickupScheduleSettings, setPickupScheduleSettings] = useState<PickupScheduleSettings>(defaultPickupScheduleSettings);
@@ -192,16 +179,6 @@ export function CartContent() {
   const pickupDateMax = needsShippingDetails ? undefined : getLatestPickupDate();
   const pickupDateOptions = getPickupDateOptions(pickupScheduleSettings);
   const pickupOrderingBlocked = pickupScheduleSettings.blockSaturday && pickupScheduleSettings.blockSunday;
-  const pickupCodeInlineError =
-    checkoutForm.fulfillmentMethod === "pickup" &&
-    checkoutForm.paymentMethod === "pickup" &&
-    checkoutForm.pickupApprovalCode.trim() &&
-    !checkoutForm.pickupApprovalCode.trim().toUpperCase().startsWith("YB-")
-      ? isSpanish
-        ? "Su codigo de recogida debe comenzar con YB-."
-        : "Your pickup code must start with YB-."
-      : "";
-
   function formatPickupOption(value: string) {
     const date = new Date(`${value}T12:00:00`);
     if (Number.isNaN(date.getTime())) {
@@ -246,6 +223,8 @@ export function CartContent() {
 
   function closeCheckout() {
     setIsCheckoutOpen(false);
+    setIsPickupAcknowledgementOpen(false);
+    setPickupAcknowledged(false);
     setCheckoutStep(1);
   }
 
@@ -256,7 +235,7 @@ export function CartContent() {
       setCheckoutForm((current) => ({
         ...current,
         fulfillmentMethod: "pickup",
-        paymentMethod: "pickup",
+        paymentMethod: "stripe",
       }));
     }
 
@@ -311,20 +290,6 @@ export function CartContent() {
         : "Orders must be placed at least 48 hours in advance.";
     }
 
-    if (checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup") {
-      const pickupApprovalCode = checkoutForm.pickupApprovalCode.trim();
-
-      if (!pickupApprovalCode) {
-        return isSpanish
-          ? "Se requiere un código de recogida antes de poder hacer este pedido."
-          : "A pickup code is required before this order can be placed.";
-      }
-
-      if (!pickupApprovalCode.toUpperCase().startsWith("YB-")) {
-        return isSpanish ? "Los códigos de recogida deben comenzar con YB-." : "Pickup codes must start with YB-.";
-      }
-    }
-
     if (checkoutForm.fulfillmentMethod === "shipping-request") {
       if (!checkoutForm.shippingAddress.trim()) {
         return isSpanish
@@ -357,19 +322,19 @@ export function CartContent() {
 
     if (pickupScheduleSettings.blockSaturday) {
       return isSpanish
-        ? "La recogida está disponible solo los domingos y con al menos 48 horas de anticipación."
-        : "Pickup is available on Sundays only, and orders must be placed at least 48 hours in advance.";
+        ? "La recogida esta disponible solo los domingos."
+        : "Pickup is available on Sundays only.";
     }
 
     if (pickupScheduleSettings.blockSunday) {
       return isSpanish
-        ? "La recogida está disponible solo los sábados y con al menos 48 horas de anticipación."
-        : "Pickup is available on Saturdays only, and orders must be placed at least 48 hours in advance.";
+        ? "La recogida esta disponible solo los sabados. Los pedidos para este sabado cierran el jueves anterior a las 6:00 PM, hora del Pacifico."
+        : "Pickup is available on Saturdays only. Orders for this Saturday close the prior Thursday at 6:00 PM Pacific time.";
     }
 
     return isSpanish
-      ? "Las fechas de recogida son solo sábados y domingos, y cada pedido debe hacerse con al menos 48 horas de anticipación."
-      : "Pickup dates are Saturdays and Sundays only, and each order must be placed at least 48 hours in advance.";
+      ? "La recogida del sabado cierra el jueves anterior a las 6:00 PM, hora del Pacifico. Si pierde ese horario, la siguiente fecha disponible sera el proximo sabado."
+      : "Saturday pickup closes the prior Thursday at 6:00 PM Pacific time. After that cutoff, the next available pickup date will be the following Saturday.";
   }
 
   async function submitShippingRequest() {
@@ -457,60 +422,34 @@ export function CartContent() {
     }
   }
 
-  async function submitPickupOrder() {
-    const validationError = validateCheckoutDetails();
-    if (validationError) {
-      setCheckoutError(validationError);
-      return;
-    }
-
-    setIsSubmittingPickupOrder(true);
-
-    try {
-      const response = await fetch("/api/pickup-order", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          cart,
-          checkoutForm,
-        }),
-      });
-
-      const payload = await readJsonResponse<{ ok?: boolean; error?: string; orderId?: string }>(response);
-
-      if (!response.ok || !payload.ok || !payload.orderId) {
-        throw new Error(payload.error || "We couldn't place your pickup order right now.");
-      }
-
-      clearStoredCheckout();
-      setCart([]);
-      setCheckoutForm(initialCheckoutForm);
-      window.location.href = `/checkout/pickup-success?order_id=${encodeURIComponent(payload.orderId)}`;
-    } catch (error) {
-      setCheckoutError(
-        error instanceof Error
-          ? error.message
-          : isSpanish
-            ? "No pudimos realizar su pedido para recoger."
-            : "We couldn't place your pickup order.",
-      );
-      setIsSubmittingPickupOrder(false);
-    }
-  }
-
   async function handleCheckoutContinue() {
     if (checkoutForm.fulfillmentMethod === "shipping-request") {
       await submitShippingRequest();
       return;
     }
 
-    if (checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup") {
-      await submitPickupOrder();
+    if (checkoutForm.fulfillmentMethod === "pickup") {
+      setCheckoutError("");
+      setPickupAcknowledged(false);
+      setIsPickupAcknowledgementOpen(true);
       return;
     }
 
+    await continueToStripeCheckout();
+  }
+
+  async function confirmPickupAcknowledgement() {
+    if (!pickupAcknowledged) {
+      setCheckoutError(
+        isSpanish
+          ? "Debe reconocer que recogerá este pedido en Union City antes de continuar."
+          : "Please acknowledge that you will pick up this order in Union City before continuing.",
+      );
+      return;
+    }
+
+    setCheckoutError("");
+    setIsPickupAcknowledgementOpen(false);
     await continueToStripeCheckout();
   }
 
@@ -617,8 +556,8 @@ export function CartContent() {
             <h2>{isSpanish ? "¿Listo para hacer el pedido?" : "Ready to place the order?"}</h2>
             <p>
               {isSpanish
-                ? "Elija entre hacer un pedido para recoger en Union City o solicitar un arreglo de envío en un flujo de checkout paso a paso."
-                : "Choose between placing a Union City pickup order or requesting a shipping arrangement in a step-by-step checkout flow."}
+                ? "Pague su pedido en línea para recogerlo en Union City, o solicite un arreglo de envío en un flujo de checkout paso a paso."
+                : "Pay for your order online for pickup in Union City, or request a shipping arrangement in a step-by-step checkout flow."}
             </p>
             <button type="button" className={styles.submitButton} disabled={cart.length === 0} onClick={openCheckout}>
               {isSpanish ? "Finalizar Pedido" : "Checkout"}
@@ -693,7 +632,7 @@ export function CartContent() {
                   disabled={pickupOrderingBlocked}
                 >
                   <strong>
-                    {isSpanish ? "Hacer pedido, pagar y recoger en Union City" : "Place order, pay and pick up at Union City"}
+                    {isSpanish ? "Pagar en línea y recoger en Union City" : "Pay online and pick up in Union City"}
                   </strong>
                   <p>{getPickupOptionDescription()}</p>
                 </button>
@@ -869,34 +808,6 @@ export function CartContent() {
                     </label>
                   ) : null}
 
-                  {checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup" ? (
-                    <div className={styles.codeFieldWrap}>
-                      <label>
-                        {isSpanish ? "Código de Recogida" : "Pickup Code"}
-                        <input
-                          type="text"
-                          value={checkoutForm.pickupApprovalCode}
-                          onChange={(event) =>
-                            setCheckoutForm((current) => ({ ...current, pickupApprovalCode: event.target.value.toUpperCase() }))
-                          }
-                          placeholder={isSpanish ? "Ingrese su código de recogida" : "Enter your pickup code"}
-                          aria-invalid={pickupCodeInlineError ? "true" : "false"}
-                          required
-                        />
-                      </label>
-                      <p className={pickupCodeInlineError ? styles.codeErrorText : styles.codeHintText}>
-                        {pickupCodeInlineError ||
-                          (isSpanish
-                            ? "Su código de recogida debe comenzar con YB-."
-                            : "Your pickup code should begin with YB-.")}
-                      </p>
-                      <div className={styles.codeHelpPanel}>
-                        <strong>{isSpanish ? "¿No tiene código?" : "No code?"}</strong>
-                        <p>{isSpanish ? "Escriba al 510-329-8786 y solicite uno." : "Text 510-329-8786 and request one."}</p>
-                      </div>
-                    </div>
-                  ) : null}
-
                   <label>
                     {isSpanish ? "Notas del Pedido" : "Order Notes"}
                     <textarea
@@ -944,18 +855,14 @@ export function CartContent() {
                   <button
                     type="button"
                     className={styles.submitButton}
-                    disabled={isRedirectingToCheckout || isSendingShippingRequest || isSubmittingPickupOrder}
+                    disabled={isRedirectingToCheckout || isSendingShippingRequest}
                     onClick={handleCheckoutContinue}
                   >
                     {isSendingShippingRequest
                       ? isSpanish
                         ? "Enviando Solicitud de Envío..."
                         : "Sending Shipping Request..."
-                      : isSubmittingPickupOrder
-                        ? isSpanish
-                          ? "Realizando Pedido para Recoger..."
-                          : "Placing Pickup Order..."
-                        : isRedirectingToCheckout
+                      : isRedirectingToCheckout
                           ? isSpanish
                             ? "Redirigiendo al Checkout..."
                             : "Redirecting to Checkout..."
@@ -963,16 +870,77 @@ export function CartContent() {
                             ? isSpanish
                               ? "Enviar Solicitud de Envío"
                               : "Submit Shipping Request"
-                            : checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup"
-                              ? isSpanish
-                                ? "Hacer Pedido y Pagar al Recoger"
-                                : "Place Order and Pay at Pickup"
-                              : isSpanish
-                                ? "Continuar al Pago"
-                                : "Continue to Payment"}
+                            : isSpanish
+                              ? "Continuar al Pago"
+                              : "Continue to Payment"}
                   </button>
                 </>
               ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isPickupAcknowledgementOpen ? (
+        <div className={styles.pickupAlertOverlay} role="presentation">
+          <div
+            className={styles.pickupAlertCard}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pickup-alert-title"
+          >
+            <p className={styles.pickupAlertEyebrow}>{isSpanish ? "Aviso Importante" : "Important Notice"}</p>
+            <h2 id="pickup-alert-title">
+              {isSpanish
+                ? "Este no es un pedido de entrega"
+                : "This is not a delivery order"}
+            </h2>
+            <p className={styles.pickupAlertLead}>
+              {isSpanish
+                ? "Tendra que recoger este pedido en Union City, California."
+                : "You will have to pick up this order in Union City, California."}
+            </p>
+            <div className={styles.pickupAlertLocation}>
+              <strong>Union City, California</strong>
+              <span>{formatPickupOption(checkoutForm.pickupDate || getEarliestPickupDate(pickupScheduleSettings))}</span>
+            </div>
+            <label className={styles.pickupAlertCheckbox}>
+              <input
+                type="checkbox"
+                checked={pickupAcknowledged}
+                onChange={(event) => setPickupAcknowledged(event.target.checked)}
+              />
+              <span>
+                {isSpanish
+                  ? `Reconozco que recogere este pedido el ${formatPickupOption(checkoutForm.pickupDate)}.`
+                  : `I acknowledge that I will be picking up this order on ${formatPickupOption(checkoutForm.pickupDate)}.`}
+              </span>
+            </label>
+            <div className={styles.pickupAlertActions}>
+              <button
+                type="button"
+                className={styles.secondaryCta}
+                onClick={() => {
+                  setIsPickupAcknowledgementOpen(false);
+                  setPickupAcknowledged(false);
+                }}
+              >
+                {isSpanish ? "Volver" : "Back"}
+              </button>
+              <button
+                type="button"
+                className={styles.submitButton}
+                onClick={confirmPickupAcknowledgement}
+                disabled={!pickupAcknowledged || isRedirectingToCheckout}
+              >
+                {isRedirectingToCheckout
+                  ? isSpanish
+                    ? "Redirigiendo al Checkout..."
+                    : "Redirecting to Checkout..."
+                  : isSpanish
+                    ? "Entiendo, Continuar al Pago"
+                    : "I Understand, Continue to Payment"}
+              </button>
             </div>
           </div>
         </div>

@@ -29,7 +29,6 @@ export type CheckoutForm = {
   pickupDate: string;
   fulfillmentMethod: "pickup" | "shipping-request" | "shipping-code";
   paymentMethod: "stripe" | "pickup";
-  pickupApprovalCode: string;
   shippingAddress: string;
   shippingRequest: string;
   shippingApprovalCode: string;
@@ -54,8 +53,7 @@ export const initialCheckoutForm: CheckoutForm = {
   phone: "",
   pickupDate: "",
   fulfillmentMethod: "pickup",
-  paymentMethod: "pickup",
-  pickupApprovalCode: "",
+  paymentMethod: "stripe",
   shippingAddress: "",
   shippingRequest: "",
   shippingApprovalCode: "",
@@ -129,7 +127,20 @@ export function readStoredForm(): CheckoutForm {
   }
 
   try {
-    return JSON.parse(storedForm) as CheckoutForm;
+    const parsed = JSON.parse(storedForm) as CheckoutForm;
+
+    if (parsed.fulfillmentMethod === "pickup") {
+      return {
+        ...initialCheckoutForm,
+        ...parsed,
+        paymentMethod: "stripe",
+      };
+    }
+
+    return {
+      ...initialCheckoutForm,
+      ...parsed,
+    };
   } catch {
     return initialCheckoutForm;
   }

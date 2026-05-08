@@ -19,7 +19,6 @@ type PickupOrderPayload = {
     pickupDate?: string;
     fulfillmentMethod?: string;
     paymentMethod?: string;
-    pickupApprovalCode?: string;
     notes?: string;
   };
 };
@@ -87,7 +86,6 @@ export async function POST(request: NextRequest) {
     const pickupDate = clean(payload.checkoutForm?.pickupDate);
     const fulfillmentMethod = clean(payload.checkoutForm?.fulfillmentMethod) || "pickup";
     const paymentMethod = clean(payload.checkoutForm?.paymentMethod) || "stripe";
-    const pickupApprovalCode = clean(payload.checkoutForm?.pickupApprovalCode).toUpperCase();
     const notes = clean(payload.checkoutForm?.notes);
 
     if (!fullName || !email || !phone || !pickupDate || rawCart.length === 0) {
@@ -107,10 +105,6 @@ export async function POST(request: NextRequest) {
 
     if (!isPickupDateValid(pickupDate, "pickup", storefrontSettings)) {
       return badRequest("This pickup date is not currently available.");
-    }
-
-    if (!pickupApprovalCode || !pickupApprovalCode.startsWith("YB-")) {
-      return badRequest("A valid pickup code starting with YB- is required before this order can be placed.");
     }
 
   const cart = rawCart
@@ -190,7 +184,6 @@ export async function POST(request: NextRequest) {
         <p><strong>Phone:</strong> ${phone}</p>
         <p><strong>Pickup date:</strong> ${pickupDate}</p>
         <p><strong>Payment:</strong> Pay at pickup</p>
-        <p><strong>Pickup code:</strong> ${pickupApprovalCode}</p>
         <p><strong>Items:</strong></p>
         ${itemListMarkup}
         <p><strong>Total due at pickup:</strong> ${formatAmount(totalDue)}</p>
@@ -220,7 +213,6 @@ export async function POST(request: NextRequest) {
         <p><strong>Order ID:</strong> ${orderId}</p>
         <p><strong>Pickup date:</strong> ${pickupDate}</p>
         <p><strong>Payment:</strong> Pay at pickup</p>
-        <p><strong>Pickup code:</strong> ${pickupApprovalCode}</p>
         <p><strong>Items:</strong></p>
         ${itemListMarkup}
         <p><strong>Total due at pickup:</strong> ${formatAmount(totalDue)}</p>
