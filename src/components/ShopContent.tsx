@@ -14,7 +14,7 @@ import {
 import { useLanguage } from "./LanguageProvider";
 import {
   defaultPickupScheduleSettings,
-  getNextAvailableSaturdayPickupDate,
+  getNextAvailableWeekendPickupDates,
   getNextSaturdayCutoffDate,
   PickupScheduleSettings,
 } from "../lib/pickup-scheduling";
@@ -217,52 +217,71 @@ export function ShopContent() {
     ].filter((section) => section.items.length > 0);
   }, [activeFilter, filteredProducts, isSpanish]);
 
-  const nextSaturdayPickupDate = useMemo(
-    () => getNextAvailableSaturdayPickupDate(pickupScheduleSettings),
+  const nextWeekendPickupDates = useMemo(
+    () => getNextAvailableWeekendPickupDates(pickupScheduleSettings),
     [pickupScheduleSettings],
   );
 
-  const nextSaturdayPickupLabel = useMemo(() => {
-    if (!nextSaturdayPickupDate) {
-      return isSpanish ? "No hay sabados disponibles en este momento." : "No Saturday pickup dates are available right now.";
-    }
-
-    return new Intl.DateTimeFormat(isSpanish ? "es-US" : "en-US", {
+  const nextWeekendPickupLabel = useMemo(() => {
+    const formatter = new Intl.DateTimeFormat(isSpanish ? "es-US" : "en-US", {
       weekday: "long",
       month: "long",
       day: "numeric",
       year: "numeric",
       timeZone: "America/Los_Angeles",
-    }).format(new Date(`${nextSaturdayPickupDate}T12:00:00`));
-  }, [isSpanish, nextSaturdayPickupDate]);
+    });
+    const saturdayLabel = nextWeekendPickupDates.saturday
+      ? formatter.format(new Date(`${nextWeekendPickupDates.saturday}T12:00:00`))
+      : "";
+    const sundayLabel = nextWeekendPickupDates.sunday
+      ? formatter.format(new Date(`${nextWeekendPickupDates.sunday}T12:00:00`))
+      : "";
+
+    if (!saturdayLabel && !sundayLabel) {
+      return isSpanish
+        ? "No hay fechas de recogida de fin de semana disponibles en este momento."
+        : "No weekend pickup dates are available right now.";
+    }
+
+    if (saturdayLabel && sundayLabel) {
+      return isSpanish
+        ? `Proxima fecha disponible para recoger: ${saturdayLabel} y ${sundayLabel}`
+        : `Next available pickup date: ${saturdayLabel} & ${sundayLabel}`;
+    }
+
+    return isSpanish
+      ? `Proxima fecha disponible para recoger: ${saturdayLabel || sundayLabel}`
+      : `Next available pickup date: ${saturdayLabel || sundayLabel}`;
+  }, [isSpanish, nextWeekendPickupDates]);
 
   return (
     <>
       <section className={styles.pickupSchedulePanel}>
         <div className={styles.pickupSchedulePanelCopy}>
           <p className={styles.pickupScheduleEyebrow}>
-            {isSpanish ? "Recogida de Sabado" : "Saturday Pickup"}
+            {isSpanish ? "Recogidas de Fin de Semana" : "Weekend Pickups"}
           </p>
-          <h2>{isSpanish ? "Ordene para recoger este sabado" : "Order for Saturday pickup"}</h2>
+          <h2>{isSpanish ? "Ordene para recoger el fin de semana" : "Order for weekend pickup"}</h2>
           <p>
-            {isSpanish
-              ? `La proxima fecha disponible es ${nextSaturdayPickupLabel}.`
-              : `The next available Saturday pickup date is ${nextSaturdayPickupLabel}.`}
+            {nextWeekendPickupLabel}
           </p>
           <p className={styles.pickupScheduleRule}>
             {isSpanish
-              ? "Los pedidos para este sabado cierran el jueves anterior a las 6:00 PM, hora del Pacifico."
-              : "Orders for this Saturday close the prior Thursday at 6:00 PM Pacific time."}
+              ? "Los pedidos del fin de semana cierran el jueves anterior a las 6:00 PM, hora del Pacifico."
+              : "Weekend pickup orders close the prior Thursday at 6:00 PM Pacific time."}
           </p>
         </div>
 
         <div className={styles.pickupScheduleTimerCard}>
-          <span>{isSpanish ? "Tiempo restante" : "Time remaining"}</span>
+          <span className={styles.pickupScheduleTimerHeading}>
+            <span className={styles.hourglassIcon} aria-hidden="true">⌛</span>
+            {isSpanish ? "Tiempo restante" : "Time remaining"}
+          </span>
           <strong>{countdownLabel}</strong>
           <em>
             {isSpanish
-              ? "Despues de ese horario, la siguiente fecha disponible cambia al proximo sabado."
-              : "After that cutoff, the next available pickup date moves to the following Saturday."}
+              ? "Despues de ese horario, las siguientes fechas disponibles cambian al proximo fin de semana."
+              : "After that cutoff, the next available pickup dates move to the following weekend."}
           </em>
         </div>
       </section>
