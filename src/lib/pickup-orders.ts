@@ -2,6 +2,22 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { getSupabaseServerClient } from "./supabase-server";
 
+export type PickupOrderStorageErrorCode =
+  | "invalid_supabase_config"
+  | "local_storage_unavailable"
+  | "storage_unavailable_without_supabase"
+  | "supabase_and_local_storage_failed";
+
+export class PickupOrderStorageError extends Error {
+  code: PickupOrderStorageErrorCode;
+
+  constructor(code: PickupOrderStorageErrorCode, message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = "PickupOrderStorageError";
+    this.code = code;
+  }
+}
+
 export type RecordedPickupOrder = {
   orderId: string;
   fullName: string;
@@ -59,7 +75,15 @@ function mapRowToRecord(row: PickupOrderRow): RecordedPickupOrder {
 }
 
 function getSupabaseClient() {
-  return getSupabaseServerClient();
+  try {
+    return getSupabaseServerClient();
+  } catch (error) {
+    throw new PickupOrderStorageError(
+      "invalid_supabase_config",
+      "Supabase could not be initialized because the URL or key format is invalid.",
+      { cause: error },
+    );
+  }
 }
 
 async function readPickupOrders() {
@@ -85,25 +109,34 @@ async function recordPickupOrderLocally(order: RecordedPickupOrder) {
     return false;
   }
 
-  await mkdir(dataDirectory, { recursive: true });
-  await writeFile(
-    pickupOrdersFilePath,
-    JSON.stringify(
-      [
-        {
-          ...order,
-          status: order.status || "new",
-          statusUpdatedAt: order.statusUpdatedAt || order.createdAt,
-          pickedUpAt: order.pickedUpAt || "",
-          followUpEmailSentAt: order.followUpEmailSentAt || "",
-          archivedAt: order.archivedAt || "",
-        },
-        ...existingOrders,
-      ],
-      null,
-      2,
-    ),
-  );
+  try {
+    await mkdir(dataDirectory, { recursive: true });
+    await writeFile(
+      pickupOrdersFilePath,
+      JSON.stringify(
+        [
+          {
+            ...order,
+            status: order.status || "new",
+            statusUpdatedAt: order.statusUpdatedAt || order.createdAt,
+            pickedUpAt: order.pickedUpAt || "",
+            followUpEmailSentAt: order.followUpEmailSentAt || "",
+            archivedAt: order.archivedAt || "",
+          },
+          ...existingOrders,
+        ],
+        null,
+        2,
+      ),
+    );
+  } catch (error) {
+    throw new PickupOrderStorageError(
+      "local_storage_unavailable",
+      "Local pickup-order storage could not be written on this server.",
+      { cause: error },
+    );
+  }
+
   return true;
 }
 
@@ -153,13 +186,29 @@ export async function recordPickupOrder(order: RecordedPickupOrder) {
         return false;
       }
       console.error("Pickup order could not be saved to Supabase. Falling back to local storage.", error);
-      return recordPickupOrderLocally(order);
+      try {
+        return await recordPickupOrderLocally(order);
+      } catch (localError) {
+        throw new PickupOrderStorageError(
+          "supabase_and_local_storage_failed",
+          "Supabase could not save the pickup order, and local fallback storage is unavailable.",
+          { cause: localError },
+        );
+      }
     }
 
     return Boolean(data);
   }
 
-  return recordPickupOrderLocally(order);
+  try {
+    return await recordPickupOrderLocally(order);
+  } catch (error) {
+    throw new PickupOrderStorageError(
+      "storage_unavailable_without_supabase",
+      "Supabase is not configured, and local fallback storage is unavailable on this server.",
+      { cause: error },
+    );
+  }
 }
 
 export async function updatePickupOrder(

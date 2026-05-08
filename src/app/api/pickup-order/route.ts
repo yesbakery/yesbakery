@@ -4,7 +4,7 @@ import { getMinimumQuantityForProduct, products } from "../../../lib/catalog";
 import { renderOrderItemsEmail } from "../../../lib/email-order-items";
 import { defaultPickupScheduleSettings } from "../../../lib/pickup-scheduling";
 import { isPickupDateValid } from "../../../lib/pickup-scheduling";
-import { recordPickupOrder } from "../../../lib/pickup-orders";
+import { PickupOrderStorageError, recordPickupOrder } from "../../../lib/pickup-orders";
 import { getStorefrontSettings } from "../../../lib/storefront-settings";
 
 type PickupOrderPayload = {
@@ -42,6 +42,25 @@ function formatAmount(amount: number) {
 function buildOrderId() {
   const stamp = Date.now().toString(36).toUpperCase();
   return `YP-${stamp.slice(-8)}`;
+}
+
+function getPickupOrderStorageErrorMessage(error: unknown) {
+  if (!(error instanceof PickupOrderStorageError)) {
+    return "We couldn't save your pickup order right now. Please try again.";
+  }
+
+  switch (error.code) {
+    case "invalid_supabase_config":
+      return "Pickup orders are temporarily unavailable because the Supabase connection settings are invalid.";
+    case "storage_unavailable_without_supabase":
+      return "Pickup orders are temporarily unavailable because Supabase is not configured on this server.";
+    case "supabase_and_local_storage_failed":
+      return "We couldn't save your pickup order because Supabase failed and fallback storage is unavailable right now.";
+    case "local_storage_unavailable":
+      return "We couldn't save your pickup order because fallback storage is unavailable on this server.";
+    default:
+      return "We couldn't save your pickup order right now. Please try again.";
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -154,7 +173,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (recordError) {
     console.error("Pickup order could not be recorded in storage.", recordError);
-    return badRequest("We couldn't save your pickup order right now. Please try again.", 500);
+    return badRequest(getPickupOrderStorageErrorMessage(recordError), 500);
   }
 
   try {

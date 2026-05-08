@@ -1256,6 +1256,22 @@
   gap: 10px;
 }
 
+.codeHintText,
+.codeErrorText {
+  margin: -2px 2px 0;
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.codeHintText {
+  color: #7a5b4a;
+}
+
+.codeErrorText {
+  color: #a73f2d;
+  font-weight: 700;
+}
+
 .codeHelpPanel {
   display: grid;
   gap: 4px;

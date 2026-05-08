@@ -192,6 +192,15 @@ export function CartContent() {
   const pickupDateMax = needsShippingDetails ? undefined : getLatestPickupDate();
   const pickupDateOptions = getPickupDateOptions(pickupScheduleSettings);
   const pickupOrderingBlocked = pickupScheduleSettings.blockSaturday && pickupScheduleSettings.blockSunday;
+  const pickupCodeInlineError =
+    checkoutForm.fulfillmentMethod === "pickup" &&
+    checkoutForm.paymentMethod === "pickup" &&
+    checkoutForm.pickupApprovalCode.trim() &&
+    !checkoutForm.pickupApprovalCode.trim().toUpperCase().startsWith("YB-")
+      ? isSpanish
+        ? "Su codigo de recogida debe comenzar con YB-."
+        : "Your pickup code must start with YB-."
+      : "";
 
   function formatPickupOption(value: string) {
     const date = new Date(`${value}T12:00:00`);
@@ -871,9 +880,16 @@ export function CartContent() {
                             setCheckoutForm((current) => ({ ...current, pickupApprovalCode: event.target.value.toUpperCase() }))
                           }
                           placeholder={isSpanish ? "Ingrese su código de recogida" : "Enter your pickup code"}
+                          aria-invalid={pickupCodeInlineError ? "true" : "false"}
                           required
                         />
                       </label>
+                      <p className={pickupCodeInlineError ? styles.codeErrorText : styles.codeHintText}>
+                        {pickupCodeInlineError ||
+                          (isSpanish
+                            ? "Su código de recogida debe comenzar con YB-."
+                            : "Your pickup code should begin with YB-.")}
+                      </p>
                       <div className={styles.codeHelpPanel}>
                         <strong>{isSpanish ? "¿No tiene código?" : "No code?"}</strong>
                         <p>{isSpanish ? "Escriba al 510-329-8786 y solicite uno." : "Text 510-329-8786 and request one."}</p>
