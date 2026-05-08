@@ -1277,6 +1277,20 @@
   line-height: 1.65;
 }
 
+.checkoutOptionAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: auto;
+  padding: 12px 16px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #c47a45, #a6542d);
+  color: #fff8f4;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  box-shadow: 0 14px 28px rgba(164, 84, 45, 0.18);
+}
+
 .checkoutOptionCard:disabled {
   cursor: not-allowed;
   opacity: 0.62;
@@ -1391,8 +1405,10 @@
 }
 
 .pickupAlertCard {
-  width: min(720px, 100%);
-  padding: clamp(28px, 5vw, 46px);
+  width: min(620px, 100%);
+  max-height: min(86vh, 720px);
+  overflow: auto;
+  padding: clamp(22px, 4vw, 34px);
   border-radius: 34px;
   border: 1px solid rgba(255, 220, 220, 0.32);
   background:
@@ -1414,15 +1430,15 @@
 .pickupAlertCard h2 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(2.3rem, 6vw, 4.5rem);
+  font-size: clamp(1.9rem, 5vw, 3.2rem);
   line-height: 0.95;
   color: #fffaf8;
 }
 
 .pickupAlertLead {
-  margin: 20px 0 0;
-  font-size: clamp(1.1rem, 2vw, 1.45rem);
-  line-height: 1.7;
+  margin: 16px 0 0;
+  font-size: clamp(1rem, 2vw, 1.25rem);
+  line-height: 1.6;
   color: rgba(255, 241, 237, 0.92);
 }
 

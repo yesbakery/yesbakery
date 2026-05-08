@@ -635,6 +635,9 @@ export function CartContent() {
                     {isSpanish ? "Pagar en línea y recoger en Union City" : "Pay online and pick up in Union City"}
                   </strong>
                   <p>{getPickupOptionDescription()}</p>
+                  <span className={styles.checkoutOptionAction}>
+                    {isSpanish ? "Pagar y Recoger Ahora" : "Pay and Pick Up Now"}
+                  </span>
                 </button>
 
                 <button
@@ -648,6 +651,9 @@ export function CartContent() {
                       ? "Requiere aprobación. Se necesita más tiempo para este tipo de solicitud, así que por favor planifique con anticipación."
                       : "Requires approval. Extra lead time is necessary for this type of request, so please plan accordingly."}
                   </p>
+                  <span className={styles.checkoutOptionAction}>
+                    {isSpanish ? "Solicitar Envío Ahora" : "Request Shipping Now"}
+                  </span>
                 </button>
 
                 {hasApprovedShippingCode ? (
@@ -662,6 +668,9 @@ export function CartContent() {
                         ? "Continúe con el código de aprobación de envío que se le envió."
                         : "Continue with the shipping approval code that was sent to you."}
                     </p>
+                    <span className={styles.checkoutOptionAction}>
+                      {isSpanish ? "Usar Código Aprobado" : "Use Approved Code"}
+                    </span>
                   </button>
                 ) : null}
               </div>

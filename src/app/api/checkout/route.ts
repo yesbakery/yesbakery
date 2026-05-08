@@ -206,7 +206,13 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ url: session.url });
-  } catch {
+  } catch (error) {
+    console.error("Stripe checkout session creation failed.", error);
+
+    if (error instanceof Error && error.message.trim()) {
+      return badRequest(`Stripe checkout could not be created: ${error.message}`, 500);
+    }
+
     return badRequest("Stripe checkout could not be created. Please verify your Stripe keys and try again.", 500);
   }
 }
