@@ -78,6 +78,35 @@ async function readPickupOrders() {
   }
 }
 
+async function recordPickupOrderLocally(order: RecordedPickupOrder) {
+  const existingOrders = await readPickupOrders();
+
+  if (existingOrders.some((entry) => entry.orderId === order.orderId)) {
+    return false;
+  }
+
+  await mkdir(dataDirectory, { recursive: true });
+  await writeFile(
+    pickupOrdersFilePath,
+    JSON.stringify(
+      [
+        {
+          ...order,
+          status: order.status || "new",
+          statusUpdatedAt: order.statusUpdatedAt || order.createdAt,
+          pickedUpAt: order.pickedUpAt || "",
+          followUpEmailSentAt: order.followUpEmailSentAt || "",
+          archivedAt: order.archivedAt || "",
+        },
+        ...existingOrders,
+      ],
+      null,
+      2,
+    ),
+  );
+  return true;
+}
+
 export async function listPickupOrders() {
   const supabase = getSupabaseClient();
 
@@ -123,39 +152,14 @@ export async function recordPickupOrder(order: RecordedPickupOrder) {
       if (error.code === "23505") {
         return false;
       }
-
-      throw new Error("Pickup order could not be saved to Supabase.");
+      console.error("Pickup order could not be saved to Supabase. Falling back to local storage.", error);
+      return recordPickupOrderLocally(order);
     }
 
     return Boolean(data);
   }
 
-  const existingOrders = await readPickupOrders();
-
-  if (existingOrders.some((entry) => entry.orderId === order.orderId)) {
-    return false;
-  }
-
-  await mkdir(dataDirectory, { recursive: true });
-  await writeFile(
-    pickupOrdersFilePath,
-    JSON.stringify(
-      [
-        {
-          ...order,
-          status: order.status || "new",
-          statusUpdatedAt: order.statusUpdatedAt || order.createdAt,
-          pickedUpAt: order.pickedUpAt || "",
-          followUpEmailSentAt: order.followUpEmailSentAt || "",
-          archivedAt: order.archivedAt || "",
-        },
-        ...existingOrders,
-      ],
-      null,
-      2,
-    ),
-  );
-  return true;
+  return recordPickupOrderLocally(order);
 }
 
 export async function updatePickupOrder(

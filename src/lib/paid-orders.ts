@@ -84,6 +84,35 @@ async function readPaidOrders() {
   }
 }
 
+async function recordPaidOrderLocally(order: RecordedPaidOrder) {
+  const existingOrders = await readPaidOrders();
+
+  if (existingOrders.some((entry) => entry.sessionId === order.sessionId)) {
+    return false;
+  }
+
+  await mkdir(dataDirectory, { recursive: true });
+  await writeFile(
+    paidOrdersFilePath,
+    JSON.stringify(
+      [
+        {
+          ...order,
+          status: order.status || "new",
+          statusUpdatedAt: order.statusUpdatedAt || order.createdAt,
+          pickedUpAt: order.pickedUpAt || "",
+          followUpEmailSentAt: order.followUpEmailSentAt || "",
+          archivedAt: order.archivedAt || "",
+        },
+        ...existingOrders,
+      ],
+      null,
+      2,
+    ),
+  );
+  return true;
+}
+
 export async function listPaidOrders() {
   const supabase = getSupabaseClient();
 
@@ -131,39 +160,14 @@ export async function recordPaidOrder(order: RecordedPaidOrder) {
       if (error.code === "23505") {
         return false;
       }
-
-      throw new Error("Paid order could not be saved to Supabase.");
+      console.error("Paid order could not be saved to Supabase. Falling back to local storage.", error);
+      return recordPaidOrderLocally(order);
     }
 
     return Boolean(data);
   }
 
-  const existingOrders = await readPaidOrders();
-
-  if (existingOrders.some((entry) => entry.sessionId === order.sessionId)) {
-    return false;
-  }
-
-  await mkdir(dataDirectory, { recursive: true });
-  await writeFile(
-    paidOrdersFilePath,
-    JSON.stringify(
-      [
-        {
-          ...order,
-          status: order.status || "new",
-          statusUpdatedAt: order.statusUpdatedAt || order.createdAt,
-          pickedUpAt: order.pickedUpAt || "",
-          followUpEmailSentAt: order.followUpEmailSentAt || "",
-          archivedAt: order.archivedAt || "",
-        },
-        ...existingOrders,
-      ],
-      null,
-      2,
-    ),
-  );
-  return true;
+  return recordPaidOrderLocally(order);
 }
 
 export async function updatePaidOrder(
