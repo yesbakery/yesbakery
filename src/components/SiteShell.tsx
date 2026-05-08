@@ -35,10 +35,6 @@ export function SiteShell({ children }: PropsWithChildren) {
     };
   }, []);
 
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [pathname]);
-
   return (
     <main className={styles.page}>
       <div className={styles.shell}>
@@ -55,7 +51,7 @@ export function SiteShell({ children }: PropsWithChildren) {
 
           <div className={styles.navActions}>
             <a className={styles.contactPill} href="tel:5103298786">
-              {isSpanish ? "Llame o escriba al 510-329-8786" : "Call or Text 510-329-8786"}
+              {isSpanish ? "Llame 510-329-8786" : "Call/Text 510-329-8786"}
             </a>
 
             <button
@@ -123,12 +119,13 @@ export function SiteShell({ children }: PropsWithChildren) {
                   key={item.href}
                   href={item.href}
                   className={pathname === item.href ? styles.navLinkActive : ""}
+                  onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {item.label}
                 </Link>
               ))}
 
-              <Link className={styles.mobileCartBadge} href="/cart">
+              <Link className={styles.mobileCartBadge} href="/cart" onClick={() => setIsMobileMenuOpen(false)}>
                 {isSpanish ? "Carrito" : "Cart"}
                 <span>{itemCount}</span>
               </Link>

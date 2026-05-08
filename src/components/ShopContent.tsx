@@ -259,7 +259,7 @@ export function ShopContent() {
       <section className={styles.pickupSchedulePanel}>
         <div className={styles.pickupSchedulePanelCopy}>
           <p className={styles.pickupScheduleEyebrow}>
-            {isSpanish ? "Recogidas de Fin de Semana" : "Weekend Pickups"}
+            {isSpanish ? "Solo horneamos fresco los fines de semana." : "We only bake fresh on weekends."}
           </p>
           <h2>{isSpanish ? "Ordene para recoger el fin de semana" : "Order for weekend pickup"}</h2>
           <p>
@@ -283,51 +283,6 @@ export function ShopContent() {
               ? "Despues de ese horario, las siguientes fechas disponibles cambian al proximo fin de semana."
               : "After that cutoff, the next available pickup dates move to the following weekend."}
           </em>
-        </div>
-      </section>
-
-      <section className={styles.hero}>
-        <div className={styles.heroCopy}>
-          <p className={styles.kicker}>{isSpanish ? "Tienda" : "Shop"}</p>
-          <h1>
-            {isSpanish
-              ? "Elija los panes y pasteles que desea, y luego vaya al carrito cuando esté listo."
-              : "Choose the breads and pastries you want, then head to cart when you are ready."}
-          </h1>
-          <p className={styles.lede}>
-            {isSpanish
-              ? "En YesBakery, cada producto esta hecho a mano con cuidado usando ingredientes elegidos con intencion, materiales de calidad premium y recetas creadas para llevar consuelo, alegria y un sabor inolvidable a cada bocado."
-              : "At YesBakery, every product is handcrafted with care using thoughtfully selected ingredients, premium quality materials, and recipes made to bring comfort, joy, and unforgettable flavor to every bite."}
-          </p>
-          <p className={styles.lede}>
-            {isSpanish
-              ? "Creemos que una buena reposteria comienza con calidad, desde chocolate intenso y mantequilla real hasta frutas frescas, sabores delicados y texturas cuidadosamente equilibradas. Cada pan, galleta, pastel y postre se hace fresco en pequenos lotes para asegurar la mejor experiencia posible."
-              : "We believe good baking starts with quality, from rich chocolate and real butter to fresh fruits, delicate flavors, and carefully balanced textures. Every loaf, cookie, pastry, and dessert is made fresh in small batches to ensure the best experience possible."}
-          </p>
-          <p className={styles.lede}>
-            {isSpanish
-              ? "Nuestra meta es simple: crear productos que se sientan especiales, caseros, reconfortantes y dignos de volver a pedir. Gracias por apoyar nuestro sueno y permitirnos ser parte de su mesa, sus celebraciones y sus momentos mas dulces."
-              : "Our goal is simple: to create products that feel special, homemade, comforting, and worth coming back for. Thank you for supporting our dream and allowing us to be part of your table, your celebrations, and your sweetest moments."}
-          </p>
-        </div>
-
-        <div className={styles.heroFeature}>
-          <div className={styles.heroImageWrap}>
-            <Image
-              src="/assets/products/sourdough/sour_dough-plain.PNG"
-              alt="Fresh sourdough bread from Yes Bakery & More"
-              fill
-              priority
-              sizes="(max-width: 900px) 100vw, 42vw"
-            />
-          </div>
-          <div className={styles.heroNote}>
-            <span>{isSpanish ? "Favorito de la Panadería" : "Bakery Favorite"}</span>
-            <strong>{isSpanish ? "Pan de Masa madre" : "Sourdough"}</strong>
-            <em>
-              {currency.format(10)} {isSpanish ? "cada uno" : "each"}
-            </em>
-          </div>
         </div>
       </section>
 

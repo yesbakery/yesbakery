@@ -55,6 +55,7 @@
   text-decoration: none;
   font-weight: 700;
   letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 .languageToggle {
@@ -84,8 +85,11 @@
 }
 
 .contactPill {
+  flex-shrink: 0;
+  padding-inline: 14px;
   color: #6a4532;
   background: rgba(255, 255, 255, 0.72);
+  font-size: 0.95rem;
 }
 
 .embeddedHomePage {
@@ -107,11 +111,161 @@
   background: #ede0c8;
 }
 
+.shopWarmupOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: #ede0c8;
+  animation: warmupRelease 2s ease-in-out forwards;
+}
+
+.shopWarmupScene {
+  display: grid;
+  place-items: center;
+  gap: 20px;
+  width: min(360px, 92vw);
+}
+
+.ovenUnit {
+  position: relative;
+  width: min(210px, 56vw);
+  height: min(220px, 42vh);
+  animation: ovenTinyZoom 2s ease-in-out forwards;
+}
+
+.ovenSkin {
+  position: absolute;
+  inset: 0;
+  border-radius: 22px 22px 16px 16px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.16), transparent 18%, transparent 82%, rgba(40, 18, 12, 0.2)),
+    linear-gradient(180deg, #d9c8b8 0%, #a99a8d 12%, #5d6061 13%, #31383a 100%);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.12),
+    0 26px 56px rgba(40, 20, 14, 0.28);
+}
+
+.ovenTop {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  padding-top: 20px;
+}
+
+.ovenTop span {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ebe2d8, #847d78);
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.42);
+}
+
+.ovenWindow {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 30%;
+  bottom: 16%;
+  overflow: hidden;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #1a1716, #0d0b0a);
+  box-shadow: inset 0 0 0 6px rgba(204, 196, 184, 0.26);
+}
+
+.ovenGlow {
+  position: absolute;
+  inset: 12%;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 178, 79, 0.96), rgba(255, 91, 24, 0.36), transparent 72%);
+  opacity: 0.92;
+  filter: blur(10px);
+  animation: ovenLight 2s ease-in-out forwards;
+}
+
+.ovenRack {
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 219, 180, 0.52);
+}
+
+.ovenRack:nth-child(2) {
+  top: 42%;
+}
+
+.ovenRack:nth-child(3) {
+  top: 60%;
+}
+
+.ovenHandle {
+  position: absolute;
+  left: 19%;
+  right: 19%;
+  top: 22%;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #f2e7db, #9f948b);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+}
+
+.steamPlume {
+  position: absolute;
+  left: 50%;
+  top: -58px;
+  width: 150px;
+  height: 120px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.steamPlume span {
+  position: absolute;
+  bottom: 0;
+  width: 42px;
+  height: 74px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.42);
+  filter: blur(12px);
+  opacity: 0;
+  animation: steamRise 2.1s ease-in-out infinite;
+}
+
+.steamPlume span:nth-child(1) {
+  left: 24px;
+}
+
+.steamPlume span:nth-child(2) {
+  left: 68px;
+  animation-delay: 320ms;
+}
+
+.steamPlume span:nth-child(3) {
+  right: 28px;
+  animation-delay: 680ms;
+}
+
+.warmupText {
+  color: #5f311c;
+  text-align: center;
+  text-shadow: 0 2px 18px rgba(255, 248, 242, 0.62);
+}
+
+.warmupText strong {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 6vw, 3.5rem);
+  line-height: 1;
+}
+
 .pickupSchedulePanel {
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) minmax(300px, 0.95fr);
-  gap: 18px;
-  margin: 8px 0 28px;
+  gap: 12px;
+  margin: 6px 0 20px;
 }
 
 .pickupSchedulePanelCopy,
@@ -122,9 +276,9 @@
 
 .pickupSchedulePanelCopy {
   display: grid;
-  gap: 10px;
-  padding: 26px 28px;
-  border-radius: 28px;
+  gap: 6px;
+  padding: 16px 20px;
+  border-radius: 22px;
   background:
     radial-gradient(circle at top left, rgba(255, 230, 215, 0.9), transparent 34%),
     linear-gradient(135deg, rgba(255, 247, 241, 0.98), rgba(249, 233, 223, 0.96));
@@ -133,7 +287,7 @@
 .pickupScheduleEyebrow {
   margin: 0;
   color: #9a4d34;
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -142,7 +296,7 @@
 .pickupSchedulePanelCopy h2 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(1.9rem, 4vw, 3rem);
+  font-size: clamp(1.55rem, 3vw, 2.25rem);
   line-height: 0.98;
   color: #5f311c;
 }
@@ -150,7 +304,7 @@
 .pickupSchedulePanelCopy p {
   margin: 0;
   color: #6f5143;
-  line-height: 1.65;
+  line-height: 1.35;
 }
 
 .pickupScheduleRule {
@@ -161,9 +315,9 @@
 .pickupScheduleTimerCard {
   display: grid;
   align-content: center;
-  gap: 10px;
-  padding: 24px 26px;
-  border-radius: 28px;
+  gap: 7px;
+  padding: 16px 20px;
+  border-radius: 22px;
   background:
     radial-gradient(circle at top, rgba(255, 218, 210, 0.18), transparent 36%),
     linear-gradient(180deg, rgba(127, 24, 24, 0.97), rgba(83, 11, 11, 0.99));
@@ -172,7 +326,7 @@
 
 .pickupScheduleTimerCard span {
   color: rgba(255, 228, 220, 0.84);
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -188,8 +342,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.12);
   animation: hourglassTurn 2.8s ease-in-out infinite;
@@ -197,7 +351,7 @@
 
 .pickupScheduleTimerCard strong {
   font-family: var(--font-display);
-  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-size: clamp(1.35rem, 3vw, 2.05rem);
   line-height: 1.02;
   color: #fffdfb;
 }
@@ -205,7 +359,7 @@
 .pickupScheduleTimerCard em {
   font-style: normal;
   color: rgba(255, 233, 227, 0.88);
-  line-height: 1.6;
+  line-height: 1.35;
 }
 
 .navbar,
@@ -226,27 +380,38 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
+  gap: 12px;
   margin-bottom: 24px;
-  padding: 14px 18px;
+  min-height: 96px;
+  padding: 4px 16px;
+  overflow: visible;
   border-radius: 24px;
   backdrop-filter: blur(18px);
   background: rgba(255, 248, 242, 0.84);
 }
 
 .brand {
+  position: relative;
   display: inline-flex;
   align-items: center;
+  flex: 0 0 clamp(300px, 28vw, 420px);
+  height: 76px;
+  overflow: visible;
 }
 
 .brandLogo {
-  width: 277px;
+  position: absolute;
+  left: clamp(-60px, -3vw, -24px);
+  top: 50%;
+  width: clamp(301px, 24vw, 385px);
+  max-width: none;
   height: auto;
+  transform: translateY(-50%);
 }
 
 .navLinks {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 10px;
   margin-left: auto;
 }
@@ -254,6 +419,7 @@
 .navActions {
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
   gap: 12px;
   margin-left: auto;
 }
@@ -1718,6 +1884,61 @@
   }
 }
 
+@keyframes warmupRelease {
+  0%,
+  72% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@keyframes ovenTinyZoom {
+  0% {
+    transform: scale(0.94);
+  }
+
+  55% {
+    transform: scale(1.02);
+  }
+
+  100% {
+    transform: scale(1.04);
+  }
+}
+
+@keyframes ovenLight {
+  0%,
+  18% {
+    opacity: 0.48;
+  }
+
+  40%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes steamRise {
+  0% {
+    opacity: 0;
+    transform: translateY(22px) scale(0.55);
+  }
+
+  24%,
+  68% {
+    opacity: 0.8;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-92px) scale(1.16);
+  }
+}
+
 @media (hover: hover) and (pointer: fine) {
   .primaryCta:hover,
   .secondaryCta:hover,
@@ -1764,7 +1985,11 @@
   .navLinks a,
   .cartBadge,
   .addButton,
-  .submitButton {
+  .submitButton,
+  .shopWarmupOverlay,
+  .ovenUnit,
+  .ovenGlow,
+  .steamPlume span {
     animation: none;
     transition: none;
   }
@@ -1844,14 +2069,24 @@
 }
 
 @media (max-width: 640px) {
+  .shopWarmupScene {
+    width: min(300px, 92vw);
+    gap: 18px;
+  }
+
+  .ovenUnit {
+    width: min(180px, 58vw);
+    height: min(188px, 36vh);
+  }
+
   .pickupSchedulePanel {
     margin-bottom: 20px;
   }
 
   .pickupSchedulePanelCopy,
   .pickupScheduleTimerCard {
-    padding: 22px 20px;
-    border-radius: 24px;
+    padding: 14px 16px;
+    border-radius: 20px;
   }
 
   .slideshowHero {
@@ -1893,16 +2128,23 @@
     position: relative;
     align-items: center;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 8px;
+    min-height: 68px;
+    padding: 6px 10px;
+    overflow: visible;
+    border-radius: 20px;
   }
 
   .brand {
-    flex: 1 1 auto;
+    flex: 1 1 0;
+    min-width: 0;
+    height: 54px;
   }
 
   .navActions {
     width: auto;
     margin-left: 0;
+    gap: 6px;
   }
 
   .contactPill {
@@ -1911,14 +2153,20 @@
 
   .languageToggle {
     order: -1;
+    padding: 8px 10px;
   }
 
   .menuToggle {
     display: inline-flex;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
   }
 
   .brandLogo {
-    width: 148px;
+    left: -16px;
+    width: clamp(144px, 39vw, 182px);
+    max-width: none;
   }
 
   .navLinks {
@@ -1952,9 +2200,9 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    min-width: 62px;
-    height: 48px;
-    padding: 0 12px;
+    min-width: 54px;
+    height: 44px;
+    padding: 0 10px;
     border-radius: 999px;
     color: #6a4532;
     background: rgba(255, 255, 255, 0.92);
