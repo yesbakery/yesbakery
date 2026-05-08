@@ -38,6 +38,7 @@ create table if not exists public.storefront_settings (
   id text primary key,
   block_saturday boolean not null default false,
   block_sunday boolean not null default false,
+  blocked_dates text[] not null default '{}',
   updated_at timestamptz not null default now()
 );
 
@@ -50,3 +51,6 @@ alter table public.pickup_orders
 
 alter table public.paid_orders
   add column if not exists archived_at timestamptz;
+
+alter table public.storefront_settings
+  add column if not exists blocked_dates text[] not null default '{}';

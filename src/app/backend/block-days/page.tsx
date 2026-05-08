@@ -6,32 +6,53 @@ import { BackendNav } from "../../../components/BackendNav";
 type StorefrontSettings = {
   blockSaturday: boolean;
   blockSunday: boolean;
+  blockedDates: string[];
 };
 
 export default function BlockDaysPage() {
   const [settings, setSettings] = useState<StorefrontSettings>({
     blockSaturday: false,
     blockSunday: false,
+    blockedDates: [],
   });
+  const [selectedDate, setSelectedDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
-  async function loadSettings() {
-    try {
-      const response = await fetch("/api/admin/block-days", {
-        cache: "no-store",
-      });
-      const payload = (await response.json()) as { settings?: StorefrontSettings };
-      if (payload.settings) {
-        setSettings(payload.settings);
-      }
-    } finally {
-      setLoading(false);
-    }
+  function normalizeSettings(value: Partial<StorefrontSettings>): StorefrontSettings {
+    return {
+      blockSaturday: Boolean(value.blockSaturday),
+      blockSunday: Boolean(value.blockSunday),
+      blockedDates: Array.from(new Set(value.blockedDates || [])).sort(),
+    };
+  }
+
+  function formatBlockedDate(dateString: string) {
+    return new Intl.DateTimeFormat("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+      timeZone: "America/Los_Angeles",
+    }).format(new Date(`${dateString}T12:00:00`));
   }
 
   useEffect(() => {
+    async function loadSettings() {
+      try {
+        const response = await fetch("/api/admin/block-days", {
+          cache: "no-store",
+        });
+        const payload = (await response.json()) as { settings?: StorefrontSettings };
+        if (payload.settings) {
+          setSettings(normalizeSettings(payload.settings));
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+
     void loadSettings();
   }, []);
 
@@ -45,7 +66,7 @@ export default function BlockDaysPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(normalizeSettings(settings)),
       });
 
       const payload = (await response.json()) as { settings?: StorefrontSettings; error?: string };
@@ -54,13 +75,36 @@ export default function BlockDaysPage() {
         throw new Error(payload.error || "Block day settings could not be saved.");
       }
 
-      setSettings(payload.settings);
-      setMessage("Storefront pickup-day settings saved.");
+      setSettings(normalizeSettings(payload.settings));
+      setMessage("Blocked pickup days saved.");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Block day settings could not be saved.");
     } finally {
       setSaving(false);
     }
+  }
+
+  function addBlockedDate() {
+    if (!selectedDate) {
+      setMessage("Choose a date from the calendar first.");
+      return;
+    }
+
+    setSettings((current) =>
+      normalizeSettings({
+        ...current,
+        blockedDates: [...current.blockedDates, selectedDate],
+      }),
+    );
+    setSelectedDate("");
+    setMessage("");
+  }
+
+  function removeBlockedDate(dateToRemove: string) {
+    setSettings((current) => ({
+      ...current,
+      blockedDates: current.blockedDates.filter((date) => date !== dateToRemove),
+    }));
   }
 
   return (
@@ -88,7 +132,7 @@ export default function BlockDaysPage() {
             Block Days
           </h1>
           <p style={{ marginTop: "12px", color: "#6f5143", lineHeight: 1.7 }}>
-            Control whether customers can place pickup orders for Saturdays and Sundays.
+            Block full weekend days or choose exact dates when the bakery will be closed. Blocked dates will not appear as customer pickup options.
           </p>
           <BackendNav active="block-days" />
         </header>
@@ -176,6 +220,110 @@ export default function BlockDaysPage() {
                 />
               </label>
 
+              <div
+                style={{
+                  display: "grid",
+                  gap: "16px",
+                  padding: "20px",
+                  borderRadius: "22px",
+                  background: "rgba(255, 248, 242, 0.96)",
+                  border: "1px solid rgba(107, 68, 45, 0.1)",
+                }}
+              >
+                <div>
+                  <strong style={{ color: "#5f311c", display: "block", marginBottom: "6px" }}>
+                    Block Specific Pickup Dates
+                  </strong>
+                  <span style={{ color: "#6f5143", lineHeight: 1.6 }}>
+                    Pick any date the baker wants to be out. Saved dates are hidden from checkout and rejected by the order API.
+                  </span>
+                </div>
+
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "center" }}>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(event) => setSelectedDate(event.target.value)}
+                    style={{
+                      minWidth: "220px",
+                      padding: "12px 14px",
+                      borderRadius: "16px",
+                      border: "1px solid rgba(107, 68, 45, 0.16)",
+                      background: "rgba(255, 255, 255, 0.9)",
+                      color: "#4f2c1a",
+                      font: "inherit",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={addBlockedDate}
+                    style={{
+                      padding: "12px 16px",
+                      borderRadius: "999px",
+                      border: 0,
+                      background: "#5f311c",
+                      color: "#fff8f4",
+                      fontWeight: 800,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Add Date
+                  </button>
+                </div>
+
+                <div style={{ display: "grid", gap: "10px" }}>
+                  <strong style={{ color: "#5f311c" }}>Blocked Dates List</strong>
+                  {settings.blockedDates.length === 0 ? (
+                    <div
+                      style={{
+                        padding: "14px 16px",
+                        borderRadius: "18px",
+                        background: "rgba(248, 239, 228, 0.92)",
+                        color: "#6f5143",
+                      }}
+                    >
+                      No specific dates are blocked yet.
+                    </div>
+                  ) : (
+                    settings.blockedDates.map((date) => (
+                      <div
+                        key={date}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: "12px",
+                          padding: "14px 16px",
+                          borderRadius: "18px",
+                          background: "rgba(248, 239, 228, 0.92)",
+                          border: "1px solid rgba(107, 68, 45, 0.08)",
+                        }}
+                      >
+                        <div style={{ display: "grid", gap: "4px" }}>
+                          <strong style={{ color: "#5f311c" }}>{formatBlockedDate(date)}</strong>
+                          <span style={{ color: "#8b654f", fontSize: "0.92rem" }}>{date}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeBlockedDate(date)}
+                          style={{
+                            padding: "9px 12px",
+                            borderRadius: "999px",
+                            border: 0,
+                            background: "rgba(122, 65, 37, 0.1)",
+                            color: "#7a4125",
+                            fontWeight: 800,
+                            cursor: "pointer",
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
               <button
                 type="button"
                 onClick={saveSettings}
@@ -191,7 +339,7 @@ export default function BlockDaysPage() {
                   justifySelf: "start",
                 }}
               >
-                {saving ? "Saving..." : "Save Block Days"}
+                {saving ? "Saving..." : "Save Blocked Dates"}
               </button>
             </>
           )}

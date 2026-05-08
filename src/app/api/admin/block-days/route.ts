@@ -4,6 +4,7 @@ import { getStorefrontSettings, updateStorefrontSettings } from "../../../../lib
 type Payload = {
   blockSaturday?: boolean;
   blockSunday?: boolean;
+  blockedDates?: string[];
 };
 
 export async function GET() {
@@ -23,6 +24,7 @@ export async function POST(request: NextRequest) {
   const settings = await updateStorefrontSettings({
     blockSaturday: Boolean(payload.blockSaturday),
     blockSunday: Boolean(payload.blockSunday),
+    blockedDates: Array.isArray(payload.blockedDates) ? payload.blockedDates : [],
   });
 
   return NextResponse.json({ ok: true, settings });

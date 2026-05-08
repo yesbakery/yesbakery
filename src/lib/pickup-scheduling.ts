@@ -1,11 +1,13 @@
 export type PickupScheduleSettings = {
   blockSaturday: boolean;
   blockSunday: boolean;
+  blockedDates: string[];
 };
 
 export const defaultPickupScheduleSettings: PickupScheduleSettings = {
   blockSaturday: false,
   blockSunday: false,
+  blockedDates: [],
 };
 
 const PACIFIC_TIME_ZONE = "America/Los_Angeles";
@@ -90,6 +92,10 @@ function addDaysToDateString(dateString: string, daysToAdd: number) {
   return `${utcDate.getUTCFullYear()}-${String(utcDate.getUTCMonth() + 1).padStart(2, "0")}-${String(utcDate.getUTCDate()).padStart(2, "0")}`;
 }
 
+function isDateBlocked(dateString: string, settings: PickupScheduleSettings = defaultPickupScheduleSettings) {
+  return settings.blockedDates.includes(dateString);
+}
+
 function createPacificDate(year: number, month: number, day: number, hour: number, minute: number) {
   const utcGuess = new Date(Date.UTC(year, month - 1, day, hour, minute));
   const offsetMinutes = getPacificOffsetMinutes(utcGuess);
@@ -97,14 +103,7 @@ function createPacificDate(year: number, month: number, day: number, hour: numbe
   return new Date(Date.UTC(year, month - 1, day, hour, minute) - offsetMinutes * 60_000);
 }
 
-export function getNextAvailableSaturdayPickupDate(
-  settings: PickupScheduleSettings = defaultPickupScheduleSettings,
-  referenceDate = new Date(),
-) {
-  if (settings.blockSaturday) {
-    return "";
-  }
-
+function getNextWeekendSaturdayDate(referenceDate = new Date()) {
   const pacificParts = getPacificParts(referenceDate);
   const todayString = toDateStringFromParts(pacificParts);
   let daysUntilSaturday = (6 - pacificParts.weekday + 7) % 7;
@@ -122,22 +121,47 @@ export function getNextAvailableSaturdayPickupDate(
   return addDaysToDateString(todayString, daysUntilSaturday);
 }
 
+export function getNextAvailableSaturdayPickupDate(
+  settings: PickupScheduleSettings = defaultPickupScheduleSettings,
+  referenceDate = new Date(),
+) {
+  let saturdayDate = getNextWeekendSaturdayDate(referenceDate);
+
+  for (let index = 0; index < 52; index += 1) {
+    if (!settings.blockSaturday && !isDateBlocked(saturdayDate, settings)) {
+      return saturdayDate;
+    }
+
+    saturdayDate = addDaysToDateString(saturdayDate, 7);
+  }
+
+  return "";
+}
+
 export function getNextAvailableWeekendPickupDates(
   settings: PickupScheduleSettings = defaultPickupScheduleSettings,
   referenceDate = new Date(),
 ) {
-  const saturdayDate = getNextAvailableSaturdayPickupDate(settings, referenceDate);
+  let saturdayDate = getNextWeekendSaturdayDate(referenceDate);
 
-  if (!saturdayDate) {
-    return {
-      saturday: "",
-      sunday: "",
-    };
+  for (let index = 0; index < 52; index += 1) {
+    const sundayDate = addDaysToDateString(saturdayDate, 1);
+    const saturdayAvailable = !settings.blockSaturday && !isDateBlocked(saturdayDate, settings);
+    const sundayAvailable = !settings.blockSunday && !isDateBlocked(sundayDate, settings);
+
+    if (saturdayAvailable || sundayAvailable) {
+      return {
+        saturday: saturdayAvailable ? saturdayDate : "",
+        sunday: sundayAvailable ? sundayDate : "",
+      };
+    }
+
+    saturdayDate = addDaysToDateString(saturdayDate, 7);
   }
 
   return {
-    saturday: settings.blockSaturday ? "" : saturdayDate,
-    sunday: settings.blockSunday ? "" : addDaysToDateString(saturdayDate, 1),
+    saturday: "",
+    sunday: "",
   };
 }
 
@@ -177,31 +201,7 @@ export function getEarliestShippingDate() {
 }
 
 export function getEarliestPickupDate(settings: PickupScheduleSettings = defaultPickupScheduleSettings) {
-  const weekendDates = getNextAvailableWeekendPickupDates(settings);
-
-  if (weekendDates.saturday) {
-    return weekendDates.saturday;
-  }
-
-  if (weekendDates.sunday) {
-    return weekendDates.sunday;
-  }
-
-  if (settings.blockSunday) {
-    return "";
-  }
-
-  const date = startOfToday();
-  date.setDate(date.getDate() + 2);
-  for (let index = 0; index < 366; index += 1) {
-    if (date.getDay() === 0 && !settings.blockSunday) {
-      return toLocalDateString(date);
-    }
-
-    date.setDate(date.getDate() + 1);
-  }
-
-  return "";
+  return getPickupDateOptions(settings, 1)[0] || "";
 }
 
 export function getLatestPickupDate() {
@@ -212,28 +212,27 @@ export function getPickupDateOptions(
   settings: PickupScheduleSettings = defaultPickupScheduleSettings,
   limit = 16,
 ) {
-  const weekendDates = getNextAvailableWeekendPickupDates(settings);
-  const anchorDate = weekendDates.saturday || weekendDates.sunday;
-
-  if (!anchorDate) {
-    return [];
-  }
-
   const options: string[] = [];
-  const saturdayCursor = new Date(`${anchorDate}T00:00:00`);
+  const saturdayCursor = new Date(`${getNextWeekendSaturdayDate()}T00:00:00`);
+  let weekCount = 0;
 
-  while (options.length < limit) {
-    if (!settings.blockSaturday) {
-      options.push(toLocalDateString(saturdayCursor));
+  while (options.length < limit && weekCount < 52) {
+    const saturdayDate = toLocalDateString(saturdayCursor);
+    if (!settings.blockSaturday && !isDateBlocked(saturdayDate, settings)) {
+      options.push(saturdayDate);
     }
 
     if (!settings.blockSunday && options.length < limit) {
       const sundayCursor = new Date(saturdayCursor);
       sundayCursor.setDate(sundayCursor.getDate() + 1);
-      options.push(toLocalDateString(sundayCursor));
+      const sundayDate = toLocalDateString(sundayCursor);
+      if (!isDateBlocked(sundayDate, settings)) {
+        options.push(sundayDate);
+      }
     }
 
     saturdayCursor.setDate(saturdayCursor.getDate() + 7);
+    weekCount += 1;
   }
 
   return options;
@@ -258,5 +257,5 @@ export function isPickupDateValid(
   }
 
   const pickupDay = new Date(`${value}T00:00:00`).getDay();
-  return isPickupDayAllowed(pickupDay, settings);
+  return isPickupDayAllowed(pickupDay, settings) && !isDateBlocked(value, settings);
 }

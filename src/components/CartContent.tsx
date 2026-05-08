@@ -176,7 +176,7 @@ export function CartContent() {
     : getEarliestPickupDate(pickupScheduleSettings);
   const pickupDateMax = needsShippingDetails ? undefined : getLatestPickupDate();
   const pickupDateOptions = getPickupDateOptions(pickupScheduleSettings);
-  const pickupOrderingBlocked = pickupScheduleSettings.blockSaturday && pickupScheduleSettings.blockSunday;
+  const pickupOrderingBlocked = pickupDateOptions.length === 0;
   function formatPickupOption(value: string) {
     const date = new Date(`${value}T12:00:00`);
     if (Number.isNaN(date.getTime())) {
@@ -312,8 +312,8 @@ export function CartContent() {
   function getPickupOptionDescription() {
     if (pickupOrderingBlocked) {
       return isSpanish
-        ? "Los pedidos para recoger están temporalmente desactivados."
-        : "Pickup ordering is temporarily unavailable.";
+        ? "No hay fechas disponibles para recoger en este momento."
+        : "No pickup dates are available right now.";
     }
 
     if (pickupScheduleSettings.blockSaturday) {
