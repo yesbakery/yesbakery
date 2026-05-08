@@ -12,7 +12,12 @@ import {
   Product,
 } from "../lib/catalog";
 import { useLanguage } from "./LanguageProvider";
-import { defaultPickupScheduleSettings, getNextAvailableSaturdayPickupDate, PickupScheduleSettings } from "../lib/pickup-scheduling";
+import {
+  defaultPickupScheduleSettings,
+  getNextAvailableSaturdayPickupDate,
+  getNextSaturdayCutoffDate,
+  PickupScheduleSettings,
+} from "../lib/pickup-scheduling";
 import { CartItem, currency, readStoredCart, saveStoredCart } from "../lib/storefront";
 
 type ShopFilter = "all" | "sourdough" | "treats" | "jams";
@@ -24,6 +29,7 @@ export function ShopContent() {
   const [cartNotice, setCartNotice] = useState<{ id: number; message: string } | null>(null);
   const [hasLoadedCart] = useState(true);
   const [pickupScheduleSettings, setPickupScheduleSettings] = useState<PickupScheduleSettings>(defaultPickupScheduleSettings);
+  const [countdownLabel, setCountdownLabel] = useState("");
   const isSpanish = language === "es";
 
   useEffect(() => {
@@ -74,6 +80,36 @@ export function ShopContent() {
       window.clearTimeout(timeout);
     };
   }, [cartNotice]);
+
+  useEffect(() => {
+    function updateCountdown() {
+      const cutoff = getNextSaturdayCutoffDate();
+      const diff = cutoff.getTime() - Date.now();
+
+      if (diff <= 0) {
+        setCountdownLabel(isSpanish ? "El corte esta ocurriendo ahora." : "The cutoff is happening now.");
+        return;
+      }
+
+      const totalMinutes = Math.floor(diff / 60_000);
+      const days = Math.floor(totalMinutes / (60 * 24));
+      const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+      const minutes = totalMinutes % 60;
+
+      if (isSpanish) {
+        setCountdownLabel(`${days}d ${hours}h ${minutes}m para el corte del jueves a las 6:00 PM PT`);
+      } else {
+        setCountdownLabel(`${days}d ${hours}h ${minutes}m until Thursday 6:00 PM PT cutoff`);
+      }
+    }
+
+    updateCountdown();
+    const intervalId = window.setInterval(updateCountdown, 60_000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isSpanish]);
 
   function addToCart(productId: string) {
     const product = products.find((entry) => entry.id === productId);
@@ -202,21 +238,34 @@ export function ShopContent() {
 
   return (
     <>
-      <div className={styles.floatingPickupBanner}>
-        <strong>
-          {isSpanish ? "Pedidos para recoger el sabado" : "Orders for Saturday pickup"}
-        </strong>
-        <span>
-          {isSpanish
-            ? `La proxima fecha disponible es ${nextSaturdayPickupLabel}.`
-            : `The next available Saturday pickup date is ${nextSaturdayPickupLabel}.`}
-        </span>
-        <em>
-          {isSpanish
-            ? "Los pedidos para este sabado cierran el jueves anterior a las 6:00 PM, hora del Pacifico."
-            : "Orders for this Saturday close the prior Thursday at 6:00 PM Pacific time."}
-        </em>
-      </div>
+      <section className={styles.pickupSchedulePanel}>
+        <div className={styles.pickupSchedulePanelCopy}>
+          <p className={styles.pickupScheduleEyebrow}>
+            {isSpanish ? "Recogida de Sabado" : "Saturday Pickup"}
+          </p>
+          <h2>{isSpanish ? "Ordene para recoger este sabado" : "Order for Saturday pickup"}</h2>
+          <p>
+            {isSpanish
+              ? `La proxima fecha disponible es ${nextSaturdayPickupLabel}.`
+              : `The next available Saturday pickup date is ${nextSaturdayPickupLabel}.`}
+          </p>
+          <p className={styles.pickupScheduleRule}>
+            {isSpanish
+              ? "Los pedidos para este sabado cierran el jueves anterior a las 6:00 PM, hora del Pacifico."
+              : "Orders for this Saturday close the prior Thursday at 6:00 PM Pacific time."}
+          </p>
+        </div>
+
+        <div className={styles.pickupScheduleTimerCard}>
+          <span>{isSpanish ? "Tiempo restante" : "Time remaining"}</span>
+          <strong>{countdownLabel}</strong>
+          <em>
+            {isSpanish
+              ? "Despues de ese horario, la siguiente fecha disponible cambia al proximo sabado."
+              : "After that cutoff, the next available pickup date moves to the following Saturday."}
+          </em>
+        </div>
+      </section>
 
       <section className={styles.hero}>
         <div className={styles.heroCopy}>

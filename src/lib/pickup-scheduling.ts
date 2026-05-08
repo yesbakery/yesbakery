@@ -19,6 +19,10 @@ const PACIFIC_PARTS_FORMATTER = new Intl.DateTimeFormat("en-US", {
   minute: "2-digit",
   hour12: false,
 });
+const PACIFIC_OFFSET_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  timeZone: PACIFIC_TIME_ZONE,
+  timeZoneName: "shortOffset",
+});
 
 const weekdayToIndex: Record<string, number> = {
   Sun: 0,
@@ -42,6 +46,22 @@ function getPacificParts(referenceDate = new Date()) {
     hour: Number(lookup.hour),
     minute: Number(lookup.minute),
   };
+}
+
+function getPacificOffsetMinutes(referenceDate: Date) {
+  const parts = PACIFIC_OFFSET_FORMATTER.formatToParts(referenceDate);
+  const offsetValue = parts.find((part) => part.type === "timeZoneName")?.value || "GMT-8";
+  const match = offsetValue.match(/^GMT([+-])(\d{1,2})(?::?(\d{2}))?$/);
+
+  if (!match) {
+    return -8 * 60;
+  }
+
+  const sign = match[1] === "-" ? -1 : 1;
+  const hours = Number(match[2]);
+  const minutes = Number(match[3] || "0");
+
+  return sign * (hours * 60 + minutes);
 }
 
 function toLocalDateString(date: Date) {
@@ -70,6 +90,13 @@ function addDaysToDateString(dateString: string, daysToAdd: number) {
   return `${utcDate.getUTCFullYear()}-${String(utcDate.getUTCMonth() + 1).padStart(2, "0")}-${String(utcDate.getUTCDate()).padStart(2, "0")}`;
 }
 
+function createPacificDate(year: number, month: number, day: number, hour: number, minute: number) {
+  const utcGuess = new Date(Date.UTC(year, month - 1, day, hour, minute));
+  const offsetMinutes = getPacificOffsetMinutes(utcGuess);
+
+  return new Date(Date.UTC(year, month - 1, day, hour, minute) - offsetMinutes * 60_000);
+}
+
 export function getNextAvailableSaturdayPickupDate(
   settings: PickupScheduleSettings = defaultPickupScheduleSettings,
   referenceDate = new Date(),
@@ -93,6 +120,23 @@ export function getNextAvailableSaturdayPickupDate(
   }
 
   return addDaysToDateString(todayString, daysUntilSaturday);
+}
+
+export function getNextSaturdayCutoffDate(referenceDate = new Date()) {
+  const pacificParts = getPacificParts(referenceDate);
+  const todayString = toDateStringFromParts(pacificParts);
+  let daysUntilThursday = (4 - pacificParts.weekday + 7) % 7;
+  const isPastThursdayCutoff =
+    pacificParts.weekday > 4 || (pacificParts.weekday === 4 && pacificParts.hour >= 18);
+
+  if (isPastThursdayCutoff && daysUntilThursday === 0) {
+    daysUntilThursday = 7;
+  }
+
+  const cutoffDateString = addDaysToDateString(todayString, daysUntilThursday);
+  const [year, month, day] = cutoffDateString.split("-").map(Number);
+
+  return createPacificDate(year, month, day, 18, 0);
 }
 
 export function isPickupDayAllowed(day: number, settings: PickupScheduleSettings = defaultPickupScheduleSettings) {
