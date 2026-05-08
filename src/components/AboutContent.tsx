@@ -75,8 +75,8 @@ export function AboutContent() {
             </p>
             <p>
               {isSpanish
-                ? "Lo que empezó como una pasión poco a poco se convirtió en algo mucho más grande: un espacio donde la creatividad, la comodidad y la felicidad se unen a través de la comida. Siempre he creído que hornear es más que hacer postres; se trata de crear momentos que la gente recuerda."
-                : "What started as a passion slowly became something much bigger — a place where creativity, comfort, and happiness come together through food. I’ve always believed that baking is more than just making desserts; it’s about creating moments people remember."}
+                ? "Lo que empezó como una pasión poco a poco se convirtió en algo mucho más grande, un espacio donde la creatividad, la comodidad y la felicidad se unen a través de la comida. Siempre he creído que hornear es más que hacer postres; se trata de crear momentos que la gente recuerda."
+                : "What started as a passion slowly became something much bigger, a place where creativity, comfort, and happiness come together through food. I have always believed that baking is more than just making desserts; it is about creating moments people remember."}
             </p>
             <p>
               {isSpanish
@@ -96,8 +96,8 @@ export function AboutContent() {
             <p>
               <strong>
                 {isSpanish
-                  ? "— Yessica Gonzalez, Fundadora de YesBakery"
-                  : "— Yessica Gonzalez, Founder of YesBakery"}
+                  ? "Yessica Gonzalez, Fundadora de YesBakery"
+                  : "Yessica Gonzalez, Founder of YesBakery"}
               </strong>
             </p>
           </div>
