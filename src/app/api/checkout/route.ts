@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { NextRequest, NextResponse } from "next/server";
 import { getMinimumQuantityForProduct, products } from "../../../lib/catalog";
+import { defaultPickupScheduleSettings } from "../../../lib/pickup-scheduling";
 import { isPickupDateValid } from "../../../lib/pickup-scheduling";
 import { getStripePriceId, getStripeServerClient } from "../../../lib/stripe-config";
 import { getStorefrontSettings } from "../../../lib/storefront-settings";
@@ -82,7 +83,12 @@ export async function POST(request: NextRequest) {
     return badRequest("Please complete the checkout form before paying.");
   }
 
-  const storefrontSettings = await getStorefrontSettings();
+  let storefrontSettings = defaultPickupScheduleSettings;
+  try {
+    storefrontSettings = await getStorefrontSettings();
+  } catch (error) {
+    console.error("Checkout route fell back to default storefront settings.", error);
+  }
 
   if (!isPickupDateValid(pickupDate, fulfillmentMethod, storefrontSettings)) {
     return badRequest(

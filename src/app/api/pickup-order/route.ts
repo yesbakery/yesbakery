@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { getMinimumQuantityForProduct, products } from "../../../lib/catalog";
 import { renderOrderItemsEmail } from "../../../lib/email-order-items";
+import { defaultPickupScheduleSettings } from "../../../lib/pickup-scheduling";
 import { isPickupDateValid } from "../../../lib/pickup-scheduling";
 import { recordPickupOrder } from "../../../lib/pickup-orders";
 import { getStorefrontSettings } from "../../../lib/storefront-settings";
@@ -44,48 +45,54 @@ function buildOrderId() {
 }
 
 export async function POST(request: NextRequest) {
-  const resendApiKey = process.env.RESEND_API_KEY?.trim() || "";
-  const resendFromEmail = process.env.RESEND_FROM_EMAIL?.trim() || "onboarding@resend.dev";
-
-  if (!resendApiKey || resendApiKey === "re_xxxxxxxxx") {
-    return badRequest("Resend is not configured yet. Add your real Resend API key to the server environment.", 500);
-  }
-
-  let payload: PickupOrderPayload;
-
   try {
-    payload = (await request.json()) as PickupOrderPayload;
-  } catch {
-    return badRequest("Invalid pickup order request.");
-  }
+    const resendApiKey = process.env.RESEND_API_KEY?.trim() || "";
+    const resendFromEmail = process.env.RESEND_FROM_EMAIL?.trim() || "onboarding@resend.dev";
 
-  const rawCart = Array.isArray(payload.cart) ? payload.cart : [];
-  const fullName = clean(payload.checkoutForm?.fullName);
-  const email = clean(payload.checkoutForm?.email);
-  const phone = clean(payload.checkoutForm?.phone);
-  const pickupDate = clean(payload.checkoutForm?.pickupDate);
-  const fulfillmentMethod = clean(payload.checkoutForm?.fulfillmentMethod) || "pickup";
-  const paymentMethod = clean(payload.checkoutForm?.paymentMethod) || "stripe";
-  const pickupApprovalCode = clean(payload.checkoutForm?.pickupApprovalCode).toUpperCase();
-  const notes = clean(payload.checkoutForm?.notes);
+    if (!resendApiKey || resendApiKey === "re_xxxxxxxxx") {
+      return badRequest("Resend is not configured yet. Add your real Resend API key to the server environment.", 500);
+    }
 
-  if (!fullName || !email || !phone || !pickupDate || rawCart.length === 0) {
-    return badRequest("Please complete the pickup order details before submitting.");
-  }
+    let payload: PickupOrderPayload;
 
-  if (fulfillmentMethod !== "pickup" || paymentMethod !== "pickup") {
-    return badRequest("This route only accepts pickup orders that will be paid at pickup.");
-  }
+    try {
+      payload = (await request.json()) as PickupOrderPayload;
+    } catch {
+      return badRequest("Invalid pickup order request.");
+    }
 
-  const storefrontSettings = await getStorefrontSettings();
+    const rawCart = Array.isArray(payload.cart) ? payload.cart : [];
+    const fullName = clean(payload.checkoutForm?.fullName);
+    const email = clean(payload.checkoutForm?.email);
+    const phone = clean(payload.checkoutForm?.phone);
+    const pickupDate = clean(payload.checkoutForm?.pickupDate);
+    const fulfillmentMethod = clean(payload.checkoutForm?.fulfillmentMethod) || "pickup";
+    const paymentMethod = clean(payload.checkoutForm?.paymentMethod) || "stripe";
+    const pickupApprovalCode = clean(payload.checkoutForm?.pickupApprovalCode).toUpperCase();
+    const notes = clean(payload.checkoutForm?.notes);
 
-  if (!isPickupDateValid(pickupDate, "pickup", storefrontSettings)) {
-    return badRequest("This pickup date is not currently available.");
-  }
+    if (!fullName || !email || !phone || !pickupDate || rawCart.length === 0) {
+      return badRequest("Please complete the pickup order details before submitting.");
+    }
 
-  if (!pickupApprovalCode || !pickupApprovalCode.startsWith("YB-")) {
-    return badRequest("A valid pickup code starting with YB- is required before this order can be placed.");
-  }
+    if (fulfillmentMethod !== "pickup" || paymentMethod !== "pickup") {
+      return badRequest("This route only accepts pickup orders that will be paid at pickup.");
+    }
+
+    let storefrontSettings = defaultPickupScheduleSettings;
+    try {
+      storefrontSettings = await getStorefrontSettings();
+    } catch (error) {
+      console.error("Pickup order fell back to default storefront settings.", error);
+    }
+
+    if (!isPickupDateValid(pickupDate, "pickup", storefrontSettings)) {
+      return badRequest("This pickup date is not currently available.");
+    }
+
+    if (!pickupApprovalCode || !pickupApprovalCode.startsWith("YB-")) {
+      return badRequest("A valid pickup code starting with YB- is required before this order can be placed.");
+    }
 
   const cart = rawCart
     .map((item) => {
@@ -205,5 +212,9 @@ export async function POST(request: NextRequest) {
     console.error("Pickup order was saved, but email delivery failed.", emailError);
   }
 
-  return NextResponse.json({ ok: true, orderId });
+    return NextResponse.json({ ok: true, orderId });
+  } catch (error) {
+    console.error("Pickup order route failed unexpectedly.", error);
+    return badRequest("We couldn't place your pickup order right now. Please try again.", 500);
+  }
 }

@@ -28,6 +28,20 @@ import {
 
 type CheckoutStep = 1 | 2;
 
+async function readJsonResponse<T>(response: Response) {
+  const text = await response.text();
+
+  if (!text) {
+    throw new Error("The server returned an empty response.");
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error("The server returned an invalid response.");
+  }
+}
+
 export function CartContent() {
   const { language } = useLanguage();
   const overlayRef = useRef<HTMLDivElement | null>(null);
@@ -455,7 +469,7 @@ export function CartContent() {
         }),
       });
 
-      const payload = (await response.json()) as { ok?: boolean; error?: string; orderId?: string };
+      const payload = await readJsonResponse<{ ok?: boolean; error?: string; orderId?: string }>(response);
 
       if (!response.ok || !payload.ok || !payload.orderId) {
         throw new Error(payload.error || "We couldn't place your pickup order right now.");

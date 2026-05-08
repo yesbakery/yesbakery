@@ -52,13 +52,19 @@ export async function getStorefrontSettings() {
   const supabase = getSupabaseClient();
 
   if (supabase) {
-    const { data, error } = await supabase.from("storefront_settings").select("*").eq("id", STORE_ID).maybeSingle();
+    try {
+      const { data, error } = await supabase.from("storefront_settings").select("*").eq("id", STORE_ID).maybeSingle();
 
-    if (error) {
-      throw new Error("Storefront settings could not be loaded from Supabase.");
+      if (error) {
+        console.error("Storefront settings could not be loaded from Supabase.", error);
+        return defaultPickupScheduleSettings;
+      }
+
+      return data ? mapRowToSettings(data as StorefrontSettingsRow) : defaultPickupScheduleSettings;
+    } catch (error) {
+      console.error("Storefront settings lookup failed.", error);
+      return defaultPickupScheduleSettings;
     }
-
-    return data ? mapRowToSettings(data as StorefrontSettingsRow) : defaultPickupScheduleSettings;
   }
 
   return readLocalSettings();
