@@ -140,24 +140,60 @@ export function SiteShell({ children }: PropsWithChildren) {
 
         {children}
 
-        <footer className={styles.siteCredit}>
-          <div className={styles.siteCreditMeta}>
+        <footer className={styles.siteFooter}>
+          <div className={styles.footerSocials} aria-label="Yes Bakery social links">
             <a
-              href="https://webrandca.com"
+              href="https://www.instagram.com/yesbakery"
               target="_blank"
               rel="noreferrer"
-              className={styles.siteCreditLink}
-              aria-label="Website created by WeBrandCA"
+              className={styles.footerSocialLink}
+              aria-label="Visit Yes Bakery on Instagram"
             >
-              <span>Website created by WeBrandCA</span>
-              <Image
-                src="/WEBrandLogo-f.png"
-                alt="WeBrandCA logo"
-                width={840}
-                height={806}
-                className={styles.siteCreditLogo}
-              />
+              <svg viewBox="0 0 24 24" aria-hidden="true" className={styles.footerSocialIcon}>
+                <rect x="3" y="3" width="18" height="18" rx="5" />
+                <circle cx="12" cy="12" r="4.2" />
+                <circle cx="17.4" cy="6.6" r="1.2" />
+              </svg>
+              <span>Instagram</span>
             </a>
+            <a
+              href="https://www.facebook.com/YesBakeryandMore/"
+              target="_blank"
+              rel="noreferrer"
+              className={styles.footerSocialLink}
+              aria-label="Visit Yes Bakery on Facebook"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" className={styles.footerSocialIcon}>
+                <circle cx="12" cy="12" r="9" />
+                <path d="M13.4 20v-7h2.3l.4-2.7h-2.7V8.6c0-.8.2-1.3 1.4-1.3h1.5V4.9c-.3 0-1.2-.1-2.2-.1-2.2 0-3.7 1.3-3.7 3.7v1.9H8v2.7h2.4v7" />
+              </svg>
+              <span>Facebook</span>
+            </a>
+          </div>
+
+          <a className={styles.footerPhoneLink} href="tel:5103298786">
+            {isSpanish ? "Llame o envie texto 510-329-8786" : "Call or text 510-329-8786"}
+          </a>
+
+          <div className={styles.siteCredit}>
+            <div className={styles.siteCreditMeta}>
+              <a
+                href="https://webrandca.com"
+                target="_blank"
+                rel="noreferrer"
+                className={styles.siteCreditLink}
+                aria-label="Website created by WeBrandCA"
+              >
+                <span>Website created by WeBrandCA</span>
+                <Image
+                  src="/WEBrandLogo-f.png"
+                  alt="WeBrandCA logo"
+                  width={840}
+                  height={806}
+                  className={styles.siteCreditLogo}
+                />
+              </a>
+            </div>
           </div>
         </footer>
       </div>

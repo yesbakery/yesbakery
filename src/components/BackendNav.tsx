@@ -1,7 +1,7 @@
 "use client";
 
 type BackendNavProps = {
-  active: "orders" | "archive" | "customers" | "block-days" | "shipping-requests";
+  active: "orders" | "baking-dashboard" | "archive" | "customers" | "block-days" | "shipping-requests";
 };
 
 function linkStyle(active: boolean) {
@@ -37,6 +37,9 @@ export function BackendNav({ active }: BackendNavProps) {
     <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginTop: "18px" }}>
       <a href="/backend/orders" style={linkStyle(active === "orders")}>
         Check Orders
+      </a>
+      <a href="/backend/baking-dashboard" style={linkStyle(active === "baking-dashboard")}>
+        Baking Dashboard
       </a>
       <a href="/backend/orders-archive" style={linkStyle(active === "archive")}>
         Orders Archive
