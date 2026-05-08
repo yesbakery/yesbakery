@@ -53,7 +53,7 @@ export const initialCheckoutForm: CheckoutForm = {
   phone: "",
   pickupDate: "",
   fulfillmentMethod: "pickup",
-  paymentMethod: "pickup",
+  paymentMethod: "stripe",
   shippingAddress: "",
   shippingRequest: "",
   shippingApprovalCode: "",
@@ -133,7 +133,7 @@ export function readStoredForm(): CheckoutForm {
       return {
         ...initialCheckoutForm,
         ...parsed,
-        paymentMethod: "pickup",
+        paymentMethod: "stripe",
       };
     }
 
