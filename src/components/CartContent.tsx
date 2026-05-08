@@ -36,9 +36,8 @@ export function CartContent() {
   const [checkoutError, setCheckoutError] = useState("");
   const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false);
   const [isSendingShippingRequest, setIsSendingShippingRequest] = useState(false);
+  const [isSubmittingPickupOrder, setIsSubmittingPickupOrder] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [isPickupAcknowledgementOpen, setIsPickupAcknowledgementOpen] = useState(false);
-  const [pickupAcknowledged, setPickupAcknowledged] = useState(false);
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>(1);
   const [hasLoadedCheckoutState, setHasLoadedCheckoutState] = useState(false);
   const [pickupScheduleSettings, setPickupScheduleSettings] = useState<PickupScheduleSettings>(defaultPickupScheduleSettings);
@@ -172,7 +171,6 @@ export function CartContent() {
   const subtotal = cart.reduce((total, item) => total + item.unitPrice * item.quantity, 0);
   const needsShippingDetails =
     checkoutForm.fulfillmentMethod === "shipping-request" || checkoutForm.fulfillmentMethod === "shipping-code";
-  const hasApprovedShippingCode = checkoutForm.shippingApprovalCode.trim().length > 0;
   const pickupDateMin = needsShippingDetails
     ? getEarliestShippingDate()
     : getEarliestPickupDate(pickupScheduleSettings);
@@ -223,8 +221,6 @@ export function CartContent() {
 
   function closeCheckout() {
     setIsCheckoutOpen(false);
-    setIsPickupAcknowledgementOpen(false);
-    setPickupAcknowledged(false);
     setCheckoutStep(1);
   }
 
@@ -235,7 +231,7 @@ export function CartContent() {
       setCheckoutForm((current) => ({
         ...current,
         fulfillmentMethod: "pickup",
-        paymentMethod: "stripe",
+        paymentMethod: "pickup",
       }));
     }
 
@@ -422,34 +418,62 @@ export function CartContent() {
     }
   }
 
+  async function submitPickupOrder() {
+    const validationError = validateCheckoutDetails();
+    if (validationError) {
+      setCheckoutError(validationError);
+      return;
+    }
+
+    setCheckoutError("");
+    setIsSubmittingPickupOrder(true);
+
+    try {
+      const response = await fetch("/api/pickup-order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          cart,
+          checkoutForm,
+        }),
+      });
+
+      const payload = (await response.json()) as { ok?: boolean; error?: string; orderId?: string };
+
+      if (!response.ok || !payload.ok || !payload.orderId) {
+        throw new Error(payload.error || "We couldn't place your pickup order right now.");
+      }
+
+      clearStoredCheckout();
+      setCart([]);
+      setCheckoutForm(initialCheckoutForm);
+      window.location.href = `/checkout/pickup-success?order_id=${encodeURIComponent(payload.orderId)}`;
+    } catch (error) {
+      setCheckoutError(
+        error instanceof Error
+          ? error.message
+          : isSpanish
+            ? "No pudimos realizar su pedido para recoger."
+            : "We couldn't place your pickup order.",
+      );
+    } finally {
+      setIsSubmittingPickupOrder(false);
+    }
+  }
+
   async function handleCheckoutContinue() {
     if (checkoutForm.fulfillmentMethod === "shipping-request") {
       await submitShippingRequest();
       return;
     }
 
-    if (checkoutForm.fulfillmentMethod === "pickup") {
-      setCheckoutError("");
-      setPickupAcknowledged(false);
-      setIsPickupAcknowledgementOpen(true);
+    if (checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup") {
+      await submitPickupOrder();
       return;
     }
 
-    await continueToStripeCheckout();
-  }
-
-  async function confirmPickupAcknowledgement() {
-    if (!pickupAcknowledged) {
-      setCheckoutError(
-        isSpanish
-          ? "Debe reconocer que recogerá este pedido en Union City antes de continuar."
-          : "Please acknowledge that you will pick up this order in Union City before continuing.",
-      );
-      return;
-    }
-
-    setCheckoutError("");
-    setIsPickupAcknowledgementOpen(false);
     await continueToStripeCheckout();
   }
 
@@ -556,8 +580,8 @@ export function CartContent() {
             <h2>{isSpanish ? "¿Listo para hacer el pedido?" : "Ready to place the order?"}</h2>
             <p>
               {isSpanish
-                ? "Pague su pedido en línea para recogerlo en Union City, o solicite un arreglo de envío en un flujo de checkout paso a paso."
-                : "Pay for your order online for pickup in Union City, or request a shipping arrangement in a step-by-step checkout flow."}
+                ? "Haga su pedido para recoger en Union City y pagar al recoger, o solicite un arreglo de envío en un flujo de checkout paso a paso."
+                : "Place your Union City pickup order and pay at pickup, or request a shipping arrangement in a step-by-step checkout flow."}
             </p>
             <button type="button" className={styles.submitButton} disabled={cart.length === 0} onClick={openCheckout}>
               {isSpanish ? "Finalizar Pedido" : "Checkout"}
@@ -632,11 +656,11 @@ export function CartContent() {
                   disabled={pickupOrderingBlocked}
                 >
                   <strong>
-                    {isSpanish ? "Pagar en línea y recoger en Union City" : "Pay online and pick up in Union City"}
+                    {isSpanish ? "Hacer pedido y pagar al recoger en Union City" : "Place order and pay at pickup in Union City"}
                   </strong>
                   <p>{getPickupOptionDescription()}</p>
                   <span className={styles.checkoutOptionAction}>
-                    {isSpanish ? "Pagar y Recoger Ahora" : "Pay and Pick Up Now"}
+                    {isSpanish ? "Pedir y Pagar al Recoger" : "Order and Pay at Pickup"}
                   </span>
                 </button>
 
@@ -655,24 +679,6 @@ export function CartContent() {
                     {isSpanish ? "Solicitar Envío Ahora" : "Request Shipping Now"}
                   </span>
                 </button>
-
-                {hasApprovedShippingCode ? (
-                  <button
-                    type="button"
-                    className={styles.checkoutOptionCard}
-                    onClick={() => selectCheckoutType("shipping-code")}
-                  >
-                    <strong>{isSpanish ? "Usar código de envío aprobado" : "Use approved shipping code"}</strong>
-                    <p>
-                      {isSpanish
-                        ? "Continúe con el código de aprobación de envío que se le envió."
-                        : "Continue with the shipping approval code that was sent to you."}
-                    </p>
-                    <span className={styles.checkoutOptionAction}>
-                      {isSpanish ? "Usar Código Aprobado" : "Use Approved Code"}
-                    </span>
-                  </button>
-                ) : null}
               </div>
             ) : (
               <div className={styles.checkoutWizardFormWrap}>
@@ -864,13 +870,17 @@ export function CartContent() {
                   <button
                     type="button"
                     className={styles.submitButton}
-                    disabled={isRedirectingToCheckout || isSendingShippingRequest}
+                    disabled={isRedirectingToCheckout || isSendingShippingRequest || isSubmittingPickupOrder}
                     onClick={handleCheckoutContinue}
                   >
                     {isSendingShippingRequest
                       ? isSpanish
                         ? "Enviando Solicitud de Envío..."
                         : "Sending Shipping Request..."
+                      : isSubmittingPickupOrder
+                        ? isSpanish
+                          ? "Realizando Pedido para Recoger..."
+                          : "Placing Pickup Order..."
                       : isRedirectingToCheckout
                           ? isSpanish
                             ? "Redirigiendo al Checkout..."
@@ -879,77 +889,16 @@ export function CartContent() {
                             ? isSpanish
                               ? "Enviar Solicitud de Envío"
                               : "Submit Shipping Request"
-                            : isSpanish
-                              ? "Continuar al Pago"
-                              : "Continue to Payment"}
+                            : checkoutForm.fulfillmentMethod === "pickup" && checkoutForm.paymentMethod === "pickup"
+                              ? isSpanish
+                                ? "Hacer Pedido y Pagar al Recoger"
+                                : "Place Order and Pay at Pickup"
+                              : isSpanish
+                                ? "Continuar al Pago"
+                                : "Continue to Payment"}
                   </button>
                 </>
               ) : null}
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {isPickupAcknowledgementOpen ? (
-        <div className={styles.pickupAlertOverlay} role="presentation">
-          <div
-            className={styles.pickupAlertCard}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="pickup-alert-title"
-          >
-            <p className={styles.pickupAlertEyebrow}>{isSpanish ? "Aviso Importante" : "Important Notice"}</p>
-            <h2 id="pickup-alert-title">
-              {isSpanish
-                ? "Este no es un pedido de entrega"
-                : "This is not a delivery order"}
-            </h2>
-            <p className={styles.pickupAlertLead}>
-              {isSpanish
-                ? "Tendra que recoger este pedido en Union City, California."
-                : "You will have to pick up this order in Union City, California."}
-            </p>
-            <div className={styles.pickupAlertLocation}>
-              <strong>Union City, California</strong>
-              <span>{formatPickupOption(checkoutForm.pickupDate || getEarliestPickupDate(pickupScheduleSettings))}</span>
-            </div>
-            <label className={styles.pickupAlertCheckbox}>
-              <input
-                type="checkbox"
-                checked={pickupAcknowledged}
-                onChange={(event) => setPickupAcknowledged(event.target.checked)}
-              />
-              <span>
-                {isSpanish
-                  ? `Reconozco que recogere este pedido el ${formatPickupOption(checkoutForm.pickupDate)}.`
-                  : `I acknowledge that I will be picking up this order on ${formatPickupOption(checkoutForm.pickupDate)}.`}
-              </span>
-            </label>
-            <div className={styles.pickupAlertActions}>
-              <button
-                type="button"
-                className={styles.secondaryCta}
-                onClick={() => {
-                  setIsPickupAcknowledgementOpen(false);
-                  setPickupAcknowledged(false);
-                }}
-              >
-                {isSpanish ? "Volver" : "Back"}
-              </button>
-              <button
-                type="button"
-                className={styles.submitButton}
-                onClick={confirmPickupAcknowledgement}
-                disabled={!pickupAcknowledged || isRedirectingToCheckout}
-              >
-                {isRedirectingToCheckout
-                  ? isSpanish
-                    ? "Redirigiendo al Checkout..."
-                    : "Redirecting to Checkout..."
-                  : isSpanish
-                    ? "Entiendo, Continuar al Pago"
-                    : "I Understand, Continue to Payment"}
-              </button>
             </div>
           </div>
         </div>
