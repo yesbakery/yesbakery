@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const orderSummary = session.metadata?.order_summary || "";
     const notes = session.metadata?.notes || "";
 
-    const recorded = await recordPaidOrder({
+    await recordPaidOrder({
       sessionId: session.id,
       amountTotal: session.amount_total || 0,
       currency: session.currency || "usd",
@@ -62,13 +62,7 @@ export async function POST(request: NextRequest) {
     const resendApiKey = process.env.RESEND_API_KEY?.trim() || "";
     const resendFromEmail = process.env.RESEND_FROM_EMAIL?.trim() || "onboarding@resend.dev";
 
-    if (
-      recorded &&
-      resendApiKey &&
-      resendApiKey !== "re_xxxxxxxxx" &&
-      customerEmail &&
-      session.payment_status === "paid"
-    ) {
+    if (resendApiKey && resendApiKey !== "re_xxxxxxxxx" && session.payment_status === "paid") {
       const resend = new Resend(resendApiKey);
       const origin = request.nextUrl.origin;
       const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 100 });
@@ -84,13 +78,43 @@ export async function POST(request: NextRequest) {
         })),
         origin,
       );
+      const shippingRequestMarkup =
+        fulfillmentMethod === "shipping-code" || fulfillmentMethod === "shipping-request"
+          ? `<p><strong>Shipping request:</strong> ${shippingRequest || "Requested. Please review the arrangement details."}</p>`
+          : "";
+      const notesMarkup = notes && notes !== "None" ? `<p><strong>Order notes:</strong> ${notes}</p>` : "";
+      const orderDetailsMarkup = `
+        <p><strong>Order summary:</strong></p>
+        ${itemListMarkup}
+        <p><strong>Total paid:</strong> ${totalPaid}</p>
+        <p><strong>Pickup date:</strong> ${pickupDate || "Not provided"}</p>
+        <p><strong>Fulfillment:</strong> ${fulfillmentMethod}</p>
+        <p><strong>Phone:</strong> ${phone || "Not provided"}</p>
+        <p><strong>Stripe session:</strong> ${session.id}</p>
+        ${shippingRequestMarkup}
+        ${notesMarkup}
+      `;
 
       await resend.emails.send({
         from: resendFromEmail,
-        to: customerEmail,
-        replyTo: "yesbakery@gmail.com",
-        subject: "Your Yes Bakery order is confirmed",
+        to: "yesbakery@gmail.com",
+        replyTo: customerEmail || "yesbakery@gmail.com",
+        subject: `New paid order from ${customerName || customerEmail || "Yes Bakery customer"}`,
         html: `
+          <h2>New Paid Order</h2>
+          <p><strong>Name:</strong> ${customerName || "Not provided"}</p>
+          <p><strong>Email:</strong> ${customerEmail || "Not provided"}</p>
+          ${orderDetailsMarkup}
+        `,
+      });
+
+      if (customerEmail) {
+        await resend.emails.send({
+          from: resendFromEmail,
+          to: customerEmail,
+          replyTo: "yesbakery@gmail.com",
+          subject: "Your Yes Bakery order is confirmed",
+          html: `
           <h2>Thank you for your order${customerName ? `, ${customerName}` : ""}.</h2>
           <p>Your payment has been received and your Yes Bakery order is confirmed.</p>
           ${
@@ -110,21 +134,11 @@ export async function POST(request: NextRequest) {
               `
               : ""
           }
-          <p><strong>Order summary:</strong></p>
-          ${itemListMarkup}
-          <p><strong>Total paid:</strong> ${totalPaid}</p>
-          <p><strong>Pickup date:</strong> ${pickupDate || "Not provided"}</p>
-          <p><strong>Fulfillment:</strong> ${fulfillmentMethod}</p>
-          <p><strong>Phone:</strong> ${phone || "Not provided"}</p>
-          ${
-            fulfillmentMethod === "shipping"
-              ? `<p><strong>Shipping request:</strong> ${shippingRequest || "Requested. We will review your arrangement details and follow up by email."}</p>`
-              : ""
-          }
-          ${notes && notes !== "None" ? `<p><strong>Order notes:</strong> ${notes}</p>` : ""}
+          ${orderDetailsMarkup}
           <p>Thank you for supporting Yes Bakery & More.</p>
         `,
-      });
+        });
+      }
     }
   }
 
