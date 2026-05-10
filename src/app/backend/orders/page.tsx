@@ -107,6 +107,14 @@ function buildOrderKey(order: BackendOrder) {
   return `${order.type}:${order.id}`;
 }
 
+function getOrderPreview(orderSummary: string) {
+  if (orderSummary.length <= 96) {
+    return orderSummary;
+  }
+
+  return `${orderSummary.slice(0, 93)}...`;
+}
+
 function buttonStyle(active = false) {
   return {
     padding: "10px 14px",
@@ -143,6 +151,7 @@ export default function BackendOrdersPage() {
   const [typeFilter, setTypeFilter] = useState<OrderTypeFilter>("all");
   const [pickupFilter, setPickupFilter] = useState<PickupFilter>("all");
   const [selectedOrderKeys, setSelectedOrderKeys] = useState<string[]>([]);
+  const [expandedOrderKeys, setExpandedOrderKeys] = useState<string[]>([]);
 
   async function loadOrders() {
     try {
@@ -458,6 +467,13 @@ export default function BackendOrdersPage() {
     );
   }
 
+  function toggleOrderExpansion(order: BackendOrder) {
+    const orderKey = buildOrderKey(order);
+    setExpandedOrderKeys((current) =>
+      current.includes(orderKey) ? current.filter((entry) => entry !== orderKey) : [...current, orderKey],
+    );
+  }
+
   function toggleSelectAllFiltered() {
     if (allFilteredSelected) {
       const filteredKeys = new Set(filteredOrders.map(buildOrderKey));
@@ -699,6 +715,7 @@ export default function BackendOrdersPage() {
               {filteredOrders.map((order) => {
                 const orderKey = buildOrderKey(order);
                 const isSelected = selectedOrderKeys.includes(orderKey);
+                const isExpanded = expandedOrderKeys.includes(orderKey);
 
                 return (
                   <article
@@ -715,166 +732,210 @@ export default function BackendOrdersPage() {
                       gap: "14px",
                     }}
                   >
-                    <div
-                      className={orderStyles.orderCardGrid}
-                      style={{
-                        display: "grid",
-                        gap: "14px",
-                        gridTemplateColumns: "auto minmax(0, 1.1fr) minmax(220px, 0.9fr)",
-                        alignItems: "start",
-                      }}
-                    >
-                      <label
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          width: "36px",
-                          height: "36px",
-                          marginTop: "4px",
-                          borderRadius: "12px",
-                          background: "rgba(255,255,255,0.8)",
-                          border: "1px solid rgba(107, 68, 45, 0.12)",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleOrderSelection(order)}
-                          aria-label={`Select order ${order.id}`}
-                        />
-                      </label>
+                    {isExpanded ? (
+                      <>
+                        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                          <button type="button" onClick={() => toggleOrderExpansion(order)} style={buttonStyle()}>
+                            Collapse
+                          </button>
+                        </div>
 
-                      <div className={orderStyles.orderTextBlock} style={{ display: "grid", gap: "8px" }}>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
-                          <strong style={{ color: "#64351e", fontSize: "1.05rem" }}>
-                            {order.customerName || "Order"}
-                          </strong>
-                          <span
+                        <div
+                          className={orderStyles.orderCardGrid}
+                          style={{
+                            display: "grid",
+                            gap: "14px",
+                            gridTemplateColumns: "auto minmax(0, 1.1fr) minmax(220px, 0.9fr)",
+                            alignItems: "start",
+                          }}
+                        >
+                          <label
                             style={{
-                              padding: "6px 10px",
-                              borderRadius: "999px",
-                              background: statusPillBackground(order.status),
-                              color: "#64351e",
-                              fontWeight: 700,
-                              fontSize: "0.86rem",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              width: "36px",
+                              height: "36px",
+                              marginTop: "4px",
+                              borderRadius: "12px",
+                              background: "rgba(255,255,255,0.8)",
+                              border: "1px solid rgba(107, 68, 45, 0.12)",
+                              cursor: "pointer",
                             }}
                           >
-                            {formatStatusLabel(order.status)}
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleOrderSelection(order)}
+                              aria-label={`Select order ${order.id}`}
+                            />
+                          </label>
+
+                          <div className={orderStyles.orderTextBlock} style={{ display: "grid", gap: "8px" }}>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
+                              <strong style={{ color: "#64351e", fontSize: "1.05rem" }}>
+                                {order.customerName || "Order"}
+                              </strong>
+                              <span
+                                style={{
+                                  padding: "6px 10px",
+                                  borderRadius: "999px",
+                                  background: statusPillBackground(order.status),
+                                  color: "#64351e",
+                                  fontWeight: 700,
+                                  fontSize: "0.86rem",
+                                }}
+                              >
+                                {formatStatusLabel(order.status)}
+                              </span>
+                              <span
+                                style={{
+                                  padding: "6px 10px",
+                                  borderRadius: "999px",
+                                  background: "rgba(255, 243, 236, 0.95)",
+                                  color: "#64351e",
+                                  fontWeight: 700,
+                                  fontSize: "0.86rem",
+                                }}
+                              >
+                                {typeLabel(order.type)}
+                              </span>
+                            </div>
+
+                            <div className={orderStyles.orderFieldGroup} style={{ color: "#6f5143", lineHeight: 1.7 }}>
+                              <div>
+                                <strong style={{ color: "#5f311c" }}>Order ID:</strong> {order.id}
+                              </div>
+                              <div>
+                                <strong style={{ color: "#5f311c" }}>Items:</strong> {order.orderSummary}
+                              </div>
+                              <div>
+                                <strong style={{ color: "#5f311c" }}>Pickup:</strong> {order.pickupDate || "Not provided"}
+                              </div>
+                              <div>
+                                <strong style={{ color: "#5f311c" }}>Submitted:</strong> {formatDate(order.createdAt)}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className={orderStyles.orderFieldGroup} style={{ display: "grid", gap: "8px", color: "#6f5143", lineHeight: 1.7 }}>
+                            <div>
+                              <strong style={{ color: "#5f311c" }}>Email:</strong> {order.customerEmail || "Not provided"}
+                            </div>
+                            <div>
+                              <strong style={{ color: "#5f311c" }}>Phone:</strong> {order.phone || "Not provided"}
+                            </div>
+                            <div>
+                              <strong style={{ color: "#5f311c" }}>Payment:</strong> {order.paymentLabel}
+                            </div>
+                            <div>
+                              <strong style={{ color: "#5f311c" }}>Total:</strong> {formatMoney(order.amountTotal, order.currency)}
+                            </div>
+                            {order.notes ? (
+                              <div>
+                                <strong style={{ color: "#5f311c" }}>Notes:</strong> {order.notes}
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        <div
+                          className={orderStyles.orderActionRow}
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: "10px",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            paddingTop: "12px",
+                            borderTop: "1px solid rgba(107, 68, 45, 0.12)",
+                          }}
+                        >
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                            <button
+                              type="button"
+                              onClick={() => updateStatus(order, "new")}
+                              disabled={updatingKey.length > 0}
+                              style={buttonStyle(order.status === "new")}
+                            >
+                              New
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updateStatus(order, "in-progress")}
+                              disabled={updatingKey.length > 0}
+                              style={buttonStyle(order.status === "in-progress")}
+                            >
+                              In Progress
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updateStatus(order, "done")}
+                              disabled={updatingKey.length > 0}
+                              style={buttonStyle(order.status === "done")}
+                            >
+                              Ready for Pickup
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updateStatus(order, "picked-up")}
+                              disabled={updatingKey.length > 0}
+                              style={buttonStyle(order.status === "picked-up")}
+                            >
+                              Picked Up
+                            </button>
+                          </div>
+
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
+                            <button type="button" onClick={() => printOrder(order)} style={buttonStyle()}>
+                              Print
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updateArchivedState(order, true)}
+                              disabled={updatingKey.length > 0}
+                              style={buttonStyle()}
+                            >
+                              Archive
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className={orderStyles.collapsedOrderCard}>
+                        <label
+                          className={orderStyles.collapsedCheckbox}
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleOrderSelection(order)}
+                            aria-label={`Select order ${order.id}`}
+                          />
+                        </label>
+
+                        <button
+                          type="button"
+                          className={orderStyles.collapsedOrderButton}
+                          onClick={() => toggleOrderExpansion(order)}
+                          aria-expanded={isExpanded}
+                        >
+                          <span className={orderStyles.collapsedMain}>
+                            <strong>{order.customerName || "Order"}</strong>
+                            <span>{getOrderPreview(order.orderSummary || "No items listed")}</span>
                           </span>
-                          <span
-                            style={{
-                              padding: "6px 10px",
-                              borderRadius: "999px",
-                              background: "rgba(255, 243, 236, 0.95)",
-                              color: "#64351e",
-                              fontWeight: 700,
-                              fontSize: "0.86rem",
-                            }}
-                          >
-                            {typeLabel(order.type)}
+
+                          <span className={orderStyles.collapsedMeta}>
+                            <span>{formatStatusLabel(order.status)}</span>
+                            <span>{order.pickupDate || "No pickup date"}</span>
+                            <span>{formatMoney(order.amountTotal, order.currency)}</span>
                           </span>
-                        </div>
 
-                        <div className={orderStyles.orderFieldGroup} style={{ color: "#6f5143", lineHeight: 1.7 }}>
-                          <div>
-                            <strong style={{ color: "#5f311c" }}>Order ID:</strong> {order.id}
-                          </div>
-                          <div>
-                            <strong style={{ color: "#5f311c" }}>Items:</strong> {order.orderSummary}
-                          </div>
-                          <div>
-                            <strong style={{ color: "#5f311c" }}>Pickup:</strong> {order.pickupDate || "Not provided"}
-                          </div>
-                          <div>
-                            <strong style={{ color: "#5f311c" }}>Submitted:</strong> {formatDate(order.createdAt)}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className={orderStyles.orderFieldGroup} style={{ display: "grid", gap: "8px", color: "#6f5143", lineHeight: 1.7 }}>
-                        <div>
-                          <strong style={{ color: "#5f311c" }}>Email:</strong> {order.customerEmail || "Not provided"}
-                        </div>
-                        <div>
-                          <strong style={{ color: "#5f311c" }}>Phone:</strong> {order.phone || "Not provided"}
-                        </div>
-                        <div>
-                          <strong style={{ color: "#5f311c" }}>Payment:</strong> {order.paymentLabel}
-                        </div>
-                        <div>
-                          <strong style={{ color: "#5f311c" }}>Total:</strong> {formatMoney(order.amountTotal, order.currency)}
-                        </div>
-                        {order.notes ? (
-                          <div>
-                            <strong style={{ color: "#5f311c" }}>Notes:</strong> {order.notes}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div
-                      className={orderStyles.orderActionRow}
-                      style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: "10px",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        paddingTop: "12px",
-                        borderTop: "1px solid rgba(107, 68, 45, 0.12)",
-                      }}
-                    >
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-                        <button
-                          type="button"
-                          onClick={() => updateStatus(order, "new")}
-                          disabled={updatingKey.length > 0}
-                          style={buttonStyle(order.status === "new")}
-                        >
-                          New
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => updateStatus(order, "in-progress")}
-                          disabled={updatingKey.length > 0}
-                          style={buttonStyle(order.status === "in-progress")}
-                        >
-                          In Progress
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => updateStatus(order, "done")}
-                          disabled={updatingKey.length > 0}
-                          style={buttonStyle(order.status === "done")}
-                        >
-                          Ready for Pickup
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => updateStatus(order, "picked-up")}
-                          disabled={updatingKey.length > 0}
-                          style={buttonStyle(order.status === "picked-up")}
-                        >
-                          Picked Up
+                          <span className={orderStyles.collapsedOpenLabel}>View Details</span>
                         </button>
                       </div>
-
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
-                        <button type="button" onClick={() => printOrder(order)} style={buttonStyle()}>
-                          Print
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => updateArchivedState(order, true)}
-                          disabled={updatingKey.length > 0}
-                          style={buttonStyle()}
-                        >
-                          Archive
-                        </button>
-                      </div>
-                    </div>
+                    )}
                   </article>
                 );
               })}

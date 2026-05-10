@@ -3,6 +3,10 @@
 }
 
 .ordersFilterGrid,
+.collapsedOrderCard,
+.collapsedOrderButton,
+.collapsedMain,
+.collapsedMeta,
 .orderTextBlock,
 .orderFieldGroup,
 .orderActionRow,
@@ -12,6 +16,8 @@
 }
 
 .orderCardGrid > *,
+.collapsedOrderCard > *,
+.collapsedOrderButton > *,
 .orderTextBlock *,
 .orderFieldGroup,
 .orderFieldGroup *,
@@ -21,6 +27,81 @@
   min-width: 0;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.collapsedOrderCard {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.collapsedCheckbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  min-height: 58px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(107, 68, 45, 0.12);
+  cursor: pointer;
+}
+
+.collapsedOrderButton {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.collapsedMain {
+  display: grid;
+  gap: 6px;
+}
+
+.collapsedMain strong {
+  color: #64351e;
+  font-size: 1.08rem;
+}
+
+.collapsedMain span {
+  color: #6f5143;
+  line-height: 1.45;
+}
+
+.collapsedMeta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.collapsedMeta span,
+.collapsedOpenLabel {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: rgba(255, 243, 236, 0.95);
+  color: #64351e;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.collapsedOpenLabel {
+  color: #fff8f4;
+  background: linear-gradient(135deg, #c47a45, #a6542d);
+  white-space: nowrap;
 }
 
 @media (max-width: 760px) {
@@ -50,5 +131,18 @@
 
   .orderCardGrid {
     grid-template-columns: 1fr !important;
+  }
+
+  .collapsedOrderButton {
+    grid-template-columns: 1fr;
+  }
+
+  .collapsedMeta {
+    justify-content: flex-start;
+  }
+
+  .collapsedOpenLabel {
+    justify-content: center;
+    width: 100%;
   }
 }
