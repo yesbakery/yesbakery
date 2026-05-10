@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { BackendNav } from "../../../components/BackendNav";
+import orderStyles from "./orders.module.css";
 
 type BackendOrder = {
   id: string;
@@ -471,6 +472,7 @@ export default function BackendOrdersPage() {
 
   return (
     <main
+      className={orderStyles.ordersPage}
       style={{
         minHeight: "100vh",
         padding: "24px",
@@ -535,6 +537,7 @@ export default function BackendOrdersPage() {
             </div>
 
             <div
+              className={orderStyles.ordersFilterGrid}
               style={{
                 display: "grid",
                 gap: "10px",
@@ -611,6 +614,7 @@ export default function BackendOrdersPage() {
           </div>
 
           <div
+            className={orderStyles.batchBar}
             style={{
               display: "flex",
               flexWrap: "wrap",
@@ -623,7 +627,7 @@ export default function BackendOrdersPage() {
               border: "1px solid rgba(107, 68, 45, 0.08)",
             }}
           >
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
+            <div className={orderStyles.batchButtons} style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
               <button type="button" onClick={toggleSelectAllFiltered} style={buttonStyle()}>
                 {allFilteredSelected ? "Clear Visible Selection" : "Select All Visible"}
               </button>
@@ -712,6 +716,7 @@ export default function BackendOrdersPage() {
                     }}
                   >
                     <div
+                      className={orderStyles.orderCardGrid}
                       style={{
                         display: "grid",
                         gap: "14px",
@@ -741,7 +746,7 @@ export default function BackendOrdersPage() {
                         />
                       </label>
 
-                      <div style={{ display: "grid", gap: "8px" }}>
+                      <div className={orderStyles.orderTextBlock} style={{ display: "grid", gap: "8px" }}>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
                           <strong style={{ color: "#64351e", fontSize: "1.05rem" }}>
                             {order.customerName || "Order"}
@@ -772,7 +777,7 @@ export default function BackendOrdersPage() {
                           </span>
                         </div>
 
-                        <div style={{ color: "#6f5143", lineHeight: 1.7 }}>
+                        <div className={orderStyles.orderFieldGroup} style={{ color: "#6f5143", lineHeight: 1.7 }}>
                           <div>
                             <strong style={{ color: "#5f311c" }}>Order ID:</strong> {order.id}
                           </div>
@@ -788,7 +793,7 @@ export default function BackendOrdersPage() {
                         </div>
                       </div>
 
-                      <div style={{ display: "grid", gap: "8px", color: "#6f5143", lineHeight: 1.7 }}>
+                      <div className={orderStyles.orderFieldGroup} style={{ display: "grid", gap: "8px", color: "#6f5143", lineHeight: 1.7 }}>
                         <div>
                           <strong style={{ color: "#5f311c" }}>Email:</strong> {order.customerEmail || "Not provided"}
                         </div>
@@ -810,6 +815,7 @@ export default function BackendOrdersPage() {
                     </div>
 
                     <div
+                      className={orderStyles.orderActionRow}
                       style={{
                         display: "flex",
                         flexWrap: "wrap",

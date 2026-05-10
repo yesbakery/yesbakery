@@ -1,0 +1,54 @@
+.ordersPage {
+  overflow-x: hidden;
+}
+
+.ordersFilterGrid,
+.orderTextBlock,
+.orderFieldGroup,
+.orderActionRow,
+.batchBar,
+.batchButtons {
+  min-width: 0;
+}
+
+.orderCardGrid > *,
+.orderTextBlock *,
+.orderFieldGroup,
+.orderFieldGroup *,
+.orderActionRow,
+.batchBar,
+.batchButtons {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 760px) {
+  .ordersPage {
+    padding: 14px !important;
+  }
+
+  .ordersFilterGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .batchBar {
+    align-items: stretch !important;
+  }
+
+  .batchButtons,
+  .batchButtons button,
+  .orderActionRow,
+  .orderActionRow > div,
+  .orderActionRow button {
+    width: 100%;
+  }
+
+  .batchButtons {
+    align-items: stretch !important;
+  }
+
+  .orderCardGrid {
+    grid-template-columns: 1fr !important;
+  }
+}
