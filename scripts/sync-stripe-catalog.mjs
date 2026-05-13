@@ -14,6 +14,13 @@ const catalog = [
     amount: 1000,
   },
   {
+    envKey: "STRIPE_PRICE_SOURDOUGH_CINNAMON_SUGAR",
+    productId: "sourdough-cinnamon-sugar",
+    name: "Sourdough with Cinnamon & Sugar",
+    description: "Yes Bakery & More sourdough loaf with cinnamon and sugar.",
+    amount: 1200,
+  },
+  {
     envKey: "STRIPE_PRICE_QUESADILLA_SALVADORENA",
     productId: "quesadilla-salvadorena",
     name: "Quesadilla Salvadorena",

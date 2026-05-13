@@ -53,6 +53,13 @@ export const products: Product[] = [
     image: "/assets/products/sourdough/jalapeno_and_Cheddar-Cheese.PNG",
   },
   {
+    id: "sourdough-cinnamon-sugar",
+    name: "Sourdough with Cinnamon & Sugar",
+    price: 12,
+    description: "A cozy sourdough loaf with sweet cinnamon warmth and a soft sugar-kissed finish.",
+    image: "/assets/products/sourdough/cinnamon_sugar.jpeg",
+  },
+  {
     id: "quesadilla-salvadorena",
     name: "Quesadilla Salvadorena",
     price: 25,
@@ -101,6 +108,7 @@ const spanishProductNames: Record<string, string> = {
   "sourdough-multi-grain": "Pan de Masa Madre Multigrano",
   "sourdough-double-chocolate-chocolate-chips": "Pan de Masa Madre con Doble Chocolate y Chispas de Chocolate",
   "sourdough-jalapeno-cheddar": "Pan de Masa Madre con Jalapeño y Queso Cheddar",
+  "sourdough-cinnamon-sugar": "Pan de Masa Madre con Canela y Azúcar",
   "quesadilla-salvadorena": "Quesadilla Salvadoreña",
   "cinnamon-rolls": "Rollos de Canela",
   empanada: "Empanada",
@@ -121,6 +129,8 @@ const spanishProductDescriptions: Record<string, string> = {
     "Un pan rico de masa madre con doble chocolate y chispas de chocolate integradas en toda la pieza.",
   "sourdough-jalapeno-cheddar":
     "Un pan salado de masa madre horneado con jalapeño y queso cheddar para un sabor más intenso y artesanal.",
+  "sourdough-cinnamon-sugar":
+    "Un pan acogedor de masa madre con el calor dulce de la canela y un acabado suave con azúcar.",
   "quesadilla-salvadorena":
     "Un clásico salvadoreño con interior suave y abundante, coronado con una superficie dorada con ajonjolí.",
   "cinnamon-rolls": "Espirales tiernas con el calor de la canela, horneadas hasta quedar doradas y hermosas.",

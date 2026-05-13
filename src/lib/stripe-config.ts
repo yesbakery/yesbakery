@@ -5,7 +5,7 @@ export const STRIPE_PRICE_ENV_KEYS = {
   "sourdough-blueberries-brown-sugar": "STRIPE_PRICE_SOURDOUGH",
   "sourdough-cheddar-jalapeno": "STRIPE_PRICE_SOURDOUGH",
   "sourdough-cherry-sugar": "STRIPE_PRICE_SOURDOUGH",
-  "sourdough-cinnamon-sugar": "STRIPE_PRICE_SOURDOUGH",
+  "sourdough-cinnamon-sugar": "STRIPE_PRICE_SOURDOUGH_CINNAMON_SUGAR",
   "sourdough-multigrain": "STRIPE_PRICE_SOURDOUGH",
   "quesadilla-salvadorena": "STRIPE_PRICE_QUESADILLA_SALVADORENA",
   "cinnamon-rolls": "STRIPE_PRICE_CINNAMON_ROLLS",
