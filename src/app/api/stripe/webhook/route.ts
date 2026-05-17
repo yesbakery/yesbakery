@@ -4,8 +4,9 @@ import { recordPaidOrder } from "../../../../lib/paid-orders";
 import { sendPaidOrderEmails } from "../../../../lib/paid-order-emails";
 import { getStripeSecretKey, getStripeWebhookSecret } from "../../../../lib/stripe-config";
 
-function jsonError(message: string, status = 400) {
-  return NextResponse.json({ error: message }, { status });
+function acknowledgeSkipped(reason: string) {
+  console.error(`Stripe webhook skipped: ${reason}`);
+  return NextResponse.json({ received: true, skipped: reason });
 }
 
 export async function POST(request: NextRequest) {
@@ -13,13 +14,13 @@ export async function POST(request: NextRequest) {
   const webhookSecret = getStripeWebhookSecret();
 
   if (!stripeSecretKey || !webhookSecret) {
-    return jsonError("Stripe webhook is not configured yet.", 500);
+    return acknowledgeSkipped("Stripe webhook is not configured.");
   }
 
   const signature = request.headers.get("stripe-signature");
 
   if (!signature) {
-    return jsonError("Missing Stripe signature header.");
+    return acknowledgeSkipped("Missing Stripe signature header.");
   }
 
   const body = await request.text();
@@ -29,11 +30,16 @@ export async function POST(request: NextRequest) {
 
   try {
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-  } catch {
-    return jsonError("Stripe webhook signature verification failed.", 400);
+  } catch (error) {
+    console.error("Stripe webhook signature verification failed.", error);
+    return acknowledgeSkipped("Stripe webhook signature verification failed.");
   }
 
-  if (event.type === "checkout.session.completed") {
+  try {
+    if (event.type !== "checkout.session.completed") {
+      return NextResponse.json({ received: true });
+    }
+
     const session = event.data.object as Stripe.Checkout.Session;
     const customerEmail = session.customer_details?.email || session.customer_email || "";
     const customerName = session.metadata?.customer_name || session.customer_details?.name || "";
@@ -86,6 +92,8 @@ export async function POST(request: NextRequest) {
         })),
       });
     }
+  } catch (error) {
+    console.error("Stripe webhook processing failed after verification.", error);
   }
 
   return NextResponse.json({ received: true });
