@@ -189,6 +189,9 @@ export async function POST(request: NextRequest) {
       cancel_url: `${origin}/checkout/cancel`,
       customer_email: email,
       billing_address_collection: "auto",
+      payment_intent_data: {
+        receipt_email: email,
+      },
       metadata: {
         customer_name: shorten(fullName, 100),
         phone: shorten(phone, 100),
