@@ -45,19 +45,23 @@ export async function POST(request: NextRequest) {
     const orderSummary = session.metadata?.order_summary || "";
     const notes = session.metadata?.notes || "";
 
-    await recordPaidOrder({
-      sessionId: session.id,
-      amountTotal: session.amount_total || 0,
-      currency: session.currency || "usd",
-      paymentStatus: session.payment_status || "unknown",
-      customerEmail,
-      customerName,
-      phone,
-      pickupDate,
-      orderSummary,
-      notes,
-      createdAt: new Date().toISOString(),
-    });
+    try {
+      await recordPaidOrder({
+        sessionId: session.id,
+        amountTotal: session.amount_total || 0,
+        currency: session.currency || "usd",
+        paymentStatus: session.payment_status || "unknown",
+        customerEmail,
+        customerName,
+        phone,
+        pickupDate,
+        orderSummary,
+        notes,
+        createdAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Stripe webhook could not record paid order before email.", error);
+    }
 
     const resendApiKey = process.env.RESEND_API_KEY?.trim() || "";
     const resendFromEmail = process.env.RESEND_FROM_EMAIL?.trim() || "onboarding@resend.dev";
@@ -95,49 +99,57 @@ export async function POST(request: NextRequest) {
         ${notesMarkup}
       `;
 
-      await resend.emails.send({
-        from: resendFromEmail,
-        to: "yesbakery@gmail.com",
-        replyTo: customerEmail || "yesbakery@gmail.com",
-        subject: `New paid order from ${customerName || customerEmail || "Yes Bakery customer"}`,
-        html: `
-          <h2>New Paid Order</h2>
-          <p><strong>Name:</strong> ${customerName || "Not provided"}</p>
-          <p><strong>Email:</strong> ${customerEmail || "Not provided"}</p>
-          ${orderDetailsMarkup}
-        `,
-      });
-
-      if (customerEmail) {
+      try {
         await resend.emails.send({
           from: resendFromEmail,
-          to: customerEmail,
-          replyTo: "yesbakery@gmail.com",
-          subject: "Your Yes Bakery order is confirmed",
+          to: "yesbakery@gmail.com",
+          replyTo: customerEmail || "yesbakery@gmail.com",
+          subject: `New paid order from ${customerName || customerEmail || "Yes Bakery customer"}`,
           html: `
-          <h2>Thank you for your order${customerName ? `, ${customerName}` : ""}.</h2>
-          <p>Your payment has been received and your Yes Bakery order is confirmed.</p>
-          ${
-            fulfillmentMethod === "pickup"
-              ? `
-                <div style="margin: 22px auto; max-width: 460px; padding: 20px; border-radius: 20px; background: #fbf1ea; border: 1px solid rgba(166, 84, 45, 0.16); text-align: center;">
-                  <p style="margin: 0 0 8px; color: #8f583c; font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700;">
-                    Pick Up Date
-                  </p>
-                  <p style="margin: 0; color: #b43d2a; font-size: 32px; line-height: 1.2; font-weight: 800;">
-                    ${pickupDate || "Not provided"}
-                  </p>
-                  <p style="margin: 14px 0 0; color: #6f5143; line-height: 1.7;">
-                    This is not a delivery order, you will have to pick this order up at Union City, CA. Details will be provided once your order is completed.
-                  </p>
-                </div>
-              `
-              : ""
-          }
-          ${orderDetailsMarkup}
-          <p>Thank you for supporting Yes Bakery & More.</p>
-        `,
+            <h2>New Paid Order</h2>
+            <p><strong>Name:</strong> ${customerName || "Not provided"}</p>
+            <p><strong>Email:</strong> ${customerEmail || "Not provided"}</p>
+            ${orderDetailsMarkup}
+          `,
         });
+      } catch (error) {
+        console.error("Stripe webhook could not send admin order email.", error);
+      }
+
+      if (customerEmail) {
+        try {
+          await resend.emails.send({
+            from: resendFromEmail,
+            to: customerEmail,
+            replyTo: "yesbakery@gmail.com",
+            subject: "Your Yes Bakery order is confirmed",
+            html: `
+              <h2>Thank you for your order${customerName ? `, ${customerName}` : ""}.</h2>
+              <p>Your payment has been received and your Yes Bakery order is confirmed.</p>
+              ${
+                fulfillmentMethod === "pickup"
+                  ? `
+                    <div style="margin: 22px auto; max-width: 460px; padding: 20px; border-radius: 20px; background: #fbf1ea; border: 1px solid rgba(166, 84, 45, 0.16); text-align: center;">
+                      <p style="margin: 0 0 8px; color: #8f583c; font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700;">
+                        Pick Up Date
+                      </p>
+                      <p style="margin: 0; color: #b43d2a; font-size: 32px; line-height: 1.2; font-weight: 800;">
+                        ${pickupDate || "Not provided"}
+                      </p>
+                      <p style="margin: 14px 0 0; color: #6f5143; line-height: 1.7;">
+                        This is not a delivery order, you will have to pick this order up at Union City, CA. Details will be provided once your order is completed.
+                      </p>
+                    </div>
+                  `
+                  : ""
+              }
+              ${orderDetailsMarkup}
+              <p>Thank you for supporting Yes Bakery & More.</p>
+            `,
+          });
+        } catch (error) {
+          console.error("Stripe webhook could not send customer confirmation email.", error);
+        }
       }
     }
   }
