@@ -32,14 +32,27 @@ Subject: Your Yes Bakery order is confirmed
 
 Thank you for your order, Maria.
 
-Your payment has been received and your Yes Bakery order is confirmed.
+Your payment has been received. Your order was placed successfully and will
+be fulfilled.
 
                          PICK UP DATE
 
                   Saturday, August 29, 2026
 
-This is not a delivery order, you will have to pick this order up at
-Union City, CA. Details will be provided once your order is completed.
+HOW PICKUP WORKS
+
+1. ORDER CONFIRMED
+   This email confirms that we received your order and will fulfill it.
+
+2. WE START BAKING
+   You will receive a second email when we are preparing your order.
+
+3. READY FOR PICKUP
+   A final pickup email will tell you that your order is ready and include
+   the full pickup address and a Google Maps link.
+
+Please wait for the "ready for pickup" email before traveling to pick up
+your order.
 
 Order summary:
 
@@ -68,14 +81,27 @@ Subject: Your Yes Bakery pickup order [ORDER ID]
 
 Thank you, Maria.
 
-Your order has been placed and reserved for pickup.
+Your order has been placed successfully, reserved for pickup, and will be
+fulfilled.
 
                          PICK UP DATE
 
                   Saturday, August 29, 2026
 
-This is not a delivery order, you will have to pick this order up at
-Union City, CA. Details will be provided once your order is completed.
+HOW PICKUP WORKS
+
+1. ORDER CONFIRMED
+   This email confirms that we received your order and will fulfill it.
+
+2. WE START BAKING
+   You will receive a second email when we are preparing your order.
+
+3. READY FOR PICKUP
+   A final pickup email will tell you that your order is ready and include
+   the full pickup address and a Google Maps link.
+
+Please wait for the "ready for pickup" email before traveling to pick up
+your order.
 
 Order ID: [ORDER ID]
 Pickup date: Saturday, August 29, 2026
@@ -100,8 +126,12 @@ Subject: Your Yes Bakery order is being processed
 
 Your order is being processed, Maria.
 
-We are working on your order now and will send another update as soon as it
-is ready.
+WE'RE BAKING YOUR ORDER NOW!
+
+One more email is coming when your order is ready. That email will include
+the full pickup address and a Google Maps link.
+
+Please wait for the "ready for pickup" email before heading over.
 
 Order: 1x Plain Sourdough | 1x Cinnamon Rolls
 Total: $32.00

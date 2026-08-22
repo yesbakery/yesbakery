@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { Resend } from "resend";
+import { renderBakingPickupPanel } from "../../../../../lib/customer-email-content";
 import {
   getSuggestedProducts,
   getUnifiedOrder,
@@ -138,9 +139,7 @@ async function sendInProgressEmail(order: UnifiedOrder) {
     html: renderEmailShell(
       `Your order is being processed${order.customerName ? `, ${order.customerName}` : ""}.`,
       `
-        <p style="line-height: 1.7; color: #6f5143; margin-bottom: 16px;">
-          We are working on your order now and will send another update as soon as it is ready.
-        </p>
+        ${renderBakingPickupPanel()}
         <p style="line-height: 1.7; color: #6f5143; margin-bottom: 16px;">
           <strong style="color:#5f311c;">Order:</strong> ${order.orderSummary}<br />
           <strong style="color:#5f311c;">Total:</strong> ${formatMoney(order.amountTotal, order.currency)}<br />

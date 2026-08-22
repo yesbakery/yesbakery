@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { getMinimumQuantityForProduct, products } from "../../../lib/catalog";
+import { renderPickupConfirmationPanel } from "../../../lib/customer-email-content";
 import { renderOrderItemsEmail } from "../../../lib/email-order-items";
 import { defaultPickupScheduleSettings } from "../../../lib/pickup-scheduling";
 import { isPickupDateValid } from "../../../lib/pickup-scheduling";
@@ -198,18 +199,8 @@ export async function POST(request: NextRequest) {
       subject: `Your Yes Bakery pickup order ${orderId}`,
       html: `
         <h2>Thank you, ${fullName}.</h2>
-        <p>Your order has been placed and reserved for pickup.</p>
-        <div style="margin: 22px auto; max-width: 460px; padding: 20px; border-radius: 20px; background: #fbf1ea; border: 1px solid rgba(166, 84, 45, 0.16); text-align: center;">
-          <p style="margin: 0 0 8px; color: #8f583c; font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700;">
-            Pick Up Date
-          </p>
-          <p style="margin: 0; color: #b43d2a; font-size: 32px; line-height: 1.2; font-weight: 800;">
-            ${pickupDate}
-          </p>
-          <p style="margin: 14px 0 0; color: #6f5143; line-height: 1.7;">
-            This is not a delivery order, you will have to pick this order up at Union City, CA. Details will be provided once your order is completed.
-          </p>
-        </div>
+        <p>Your order has been placed successfully, reserved for pickup, and will be fulfilled.</p>
+        ${renderPickupConfirmationPanel(pickupDate)}
         <p><strong>Order ID:</strong> ${orderId}</p>
         <p><strong>Pickup date:</strong> ${pickupDate}</p>
         <p><strong>Payment:</strong> Pay at pickup</p>

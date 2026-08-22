@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { renderPickupConfirmationPanel } from "./customer-email-content";
 import { renderOrderItemsEmail } from "./email-order-items";
 
 export type PaidOrderEmailItem = {
@@ -144,22 +145,10 @@ export async function sendPaidOrderEmails(details: PaidOrderEmailDetails): Promi
       subject: "Your Yes Bakery order is confirmed",
       html: `
         <h2>Thank you for your order${details.customerName ? `, ${details.customerName}` : ""}.</h2>
-        <p>Your payment has been received and your Yes Bakery order is confirmed.</p>
+        <p>Your payment has been received. Your order was placed successfully and will be fulfilled.</p>
         ${
           details.fulfillmentMethod === "pickup"
-            ? `
-              <div style="margin: 22px auto; max-width: 460px; padding: 20px; border-radius: 20px; background: #fbf1ea; border: 1px solid rgba(166, 84, 45, 0.16); text-align: center;">
-                <p style="margin: 0 0 8px; color: #8f583c; font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700;">
-                  Pick Up Date
-                </p>
-                <p style="margin: 0; color: #b43d2a; font-size: 32px; line-height: 1.2; font-weight: 800;">
-                  ${details.pickupDate || "Not provided"}
-                </p>
-                <p style="margin: 14px 0 0; color: #6f5143; line-height: 1.7;">
-                  This is not a delivery order, you will have to pick this order up at Union City, CA. Details will be provided once your order is completed.
-                </p>
-              </div>
-            `
+            ? renderPickupConfirmationPanel(details.pickupDate)
             : ""
         }
         ${orderDetailsMarkup}
