@@ -1,6 +1,7 @@
 :root {
   --background: #f7f0e5;
   --foreground: #3e2418;
+  --font-display: var(--font-body);
 }
 
 html {
@@ -19,7 +20,7 @@ body {
   flex-direction: column;
   color: var(--foreground);
   background: var(--background);
-  font-family: var(--font-body), Georgia, serif;
+  font-family: var(--font-body), Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

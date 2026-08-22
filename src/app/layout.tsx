@@ -1,14 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Cormorant_Garamond, Manrope } from "next/font/google";
+import { Manrope } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "../components/LanguageProvider";
 import { PwaRegister } from "../components/PwaRegister";
-
-const displayFont = Cormorant_Garamond({
-  variable: "--font-display",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-});
 
 const bodyFont = Manrope({
   variable: "--font-body",
@@ -41,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${displayFont.variable} ${bodyFont.variable}`}>
+    <html lang="en" className={bodyFont.variable}>
       <body>
         <LanguageProvider>
           <PwaRegister />

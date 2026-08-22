@@ -1,0 +1,161 @@
+YES BAKERY & MORE
+CUSTOMER EMAIL SEQUENCE
+
+Prepared from the live website email templates
+Example customer: Maria
+Example order: 1x Plain Sourdough, 1x Cinnamon Rolls
+Example total: $32.00
+Example pickup date: Saturday, August 29, 2026
+
+
+HOW THE SEQUENCE WORKS
+
+Immediately after an order is placed, the customer receives one confirmation:
+
+  A. Paid online orders receive "Your Yes Bakery order is confirmed."
+  B. Pay-at-pickup orders receive "Your Yes Bakery pickup order [ORDER ID]."
+
+The remaining emails are shared by both order types. They are sent when the
+order is moved through the corresponding status in the bakery backend:
+
+  2. In Progress  -> "Your Yes Bakery order is being processed"
+  3. Done         -> "Your Yes Bakery order is ready for pickup"
+  4. Picked Up    -> "Thank you for picking up your Yes Bakery order"
+
+The bracketed text below represents customer- or order-specific information.
+
+STEP 1A - PAID ONLINE CONFIRMATION
+
+Sent: Immediately after a successful online payment
+Subject: Your Yes Bakery order is confirmed
+
+
+Thank you for your order, Maria.
+
+Your payment has been received and your Yes Bakery order is confirmed.
+
+                         PICK UP DATE
+
+                  Saturday, August 29, 2026
+
+This is not a delivery order, you will have to pick this order up at
+Union City, CA. Details will be provided once your order is completed.
+
+Order summary:
+
+  Plain Sourdough
+  Quantity: 1                                      $18.00
+
+  Cinnamon Rolls
+  Quantity: 1                                      $14.00
+
+Total paid: $32.00
+Pickup date: Saturday, August 29, 2026
+Fulfillment: pickup
+Phone: [CUSTOMER PHONE]
+Stripe session: [STRIPE SESSION ID]
+Order notes: [ORDER NOTES, WHEN PROVIDED]
+
+Thank you for supporting Yes Bakery & More.
+
+STEP 1B - PAY-AT-PICKUP CONFIRMATION
+
+Alternative to Step 1A. Sent immediately when a customer places an order
+that will be paid for at pickup.
+
+Subject: Your Yes Bakery pickup order [ORDER ID]
+
+
+Thank you, Maria.
+
+Your order has been placed and reserved for pickup.
+
+                         PICK UP DATE
+
+                  Saturday, August 29, 2026
+
+This is not a delivery order, you will have to pick this order up at
+Union City, CA. Details will be provided once your order is completed.
+
+Order ID: [ORDER ID]
+Pickup date: Saturday, August 29, 2026
+Payment: Pay at pickup
+
+Items:
+
+  Plain Sourdough
+  Quantity: 1                                      $18.00
+
+  Cinnamon Rolls
+  Quantity: 1                                      $14.00
+
+Total due at pickup: $32.00
+Order notes: [ORDER NOTES, WHEN PROVIDED]
+
+STEP 2 - ORDER IN PROGRESS
+
+Sent: When the bakery changes the order status to In Progress
+Subject: Your Yes Bakery order is being processed
+
+
+Your order is being processed, Maria.
+
+We are working on your order now and will send another update as soon as it
+is ready.
+
+Order: 1x Plain Sourdough | 1x Cinnamon Rolls
+Total: $32.00
+Pickup date: Saturday, August 29, 2026
+
+If you ever have a question, reply to this email and we will be happy to help.
+
+STEP 3 - READY FOR PICKUP
+
+Sent: When the bakery changes the order status to Done
+Subject: Your Yes Bakery order is ready for pickup
+
+
+Your order is ready, Maria.
+
+Your order is complete and ready for pickup.
+
+                         PICKUP ADDRESS
+
+              32380 Sheffield Ln, Union City, CA 94587
+
+                    Open in Google Maps
+
+              Text or Call 510-329-8786 for help.
+
+Order: 1x Plain Sourdough | 1x Cinnamon Rolls
+Total: $32.00
+Pickup date: Saturday, August 29, 2026
+
+For your next order, you might enjoy:
+
+  [UP TO THREE PRODUCT RECOMMENDATIONS WITH PHOTOS,
+   DESCRIPTIONS, AND PRICES]
+
+If you ever have a question about a future order, reply to this email or
+contact us and we will be happy to help.
+
+STEP 4 - PICKUP THANK-YOU
+
+Sent: The first time the bakery changes the order status to Picked Up
+Subject: Thank you for picking up your Yes Bakery order
+
+
+Thank you, Maria.
+
+We loved preparing your order, and we hope everything brought a little extra
+warmth to your table.
+
+Order: 1x Plain Sourdough | 1x Cinnamon Rolls
+Total: $32.00
+Pickup date: Saturday, August 29, 2026
+
+If you ever have a question about a future order, reply to this email or
+contact us and we will be happy to help.
+
+
+END OF CUSTOMER EMAIL SEQUENCE
